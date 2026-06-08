@@ -1174,6 +1174,18 @@
           <span class="hex-error-msg" id="hex-error">유효하지 않은 HEX 코드 형식입니다 (6자리 형식 필요)</span>
         </div>
 
+        <!-- [추가 기능 요구사항: 대비 검사용 배경색 설정 입력창] -->
+        <div class="hex-input-box">
+          <div class="hex-input-header">
+            <span class="hex-input-label">대비 검사용 배경색 입력 (Contrast BG)</span>
+          </div>
+          <div class="hex-input-wrapper">
+            <span class="hex-hash-symbol">#</span>
+            <input type="text" id="input-contrast-bg" class="input-hex-text" value="FFFFFF" placeholder="HEX 코드를 타이핑하세요">
+          </div>
+          <span class="hex-error-msg" id="contrast-bg-error">유효하지 않은 HEX 코드 형식입니다 (6자리 형식 필요)</span>
+        </div>
+
         <!-- 베이스 컬러 프리뷰 박스 (hex-input-box 아래에 탑처럼 세로로 배치) -->
         <div class="preview-card">
           <div class="preview-swatch"></div>
@@ -1439,12 +1451,15 @@
       shiftMode: 'auto', // 'auto', 'manual', 'none'
       shiftManualVal: 0, // 수동 꺾임각 최대 크기 (-45 ~ +45)
       chromaEasingMode: 'standard', // 채도 감쇄 모드 ('standard' 또는 'subtle')
+      contrastBg: 'FFFFFF', // 대비 검사용 배경색 HEX
       lastUpdatedSource: null // 이벤트 폭주 및 루프 백 방지 장치
     };
 
     // DOM 캐싱
     const inputHex = document.getElementById('input-hex');
     const hexError = document.getElementById('hex-error');
+    const inputContrastBg = document.getElementById('input-contrast-bg');
+    const contrastBgError = document.getElementById('contrast-bg-error');
 
     const lSlider = document.getElementById('lightness-slider');
     const lNum = document.getElementById('lightness-num');
@@ -1549,6 +1564,10 @@
     function syncAndRender() {
       const root = document.documentElement;
       const activeConfigs = getActiveConfigs();
+
+      // 대비 검사용 배경색(Contrast BG) 상대 휘도 연산
+      const targetBgColorInfo = parseColor('#' + state.contrastBg);
+      const targetBgL = getRelativeLuminance(targetBgColorInfo.r, targetBgColorInfo.g, targetBgColorInfo.b);
 
       // [요구사항] 동적 채도 비율(--c-ratio-X)을 :root CSS 속성에 실시간 주입
       activeConfigs.forEach(cfg => {
@@ -1665,8 +1684,8 @@
 
         chipEl.style.color = (ratioWithDark >= ratioWithWhite) ? '#0f172a' : '#ffffff';
 
-        // WCAG 2.1 실시간 명암비 연산 및 3단계 등급 판별
-        const finalRatio = Math.max(ratioWithWhite, ratioWithDark);
+        // WCAG 2.1 실시간 명암비 연산 (지정된 배경색 targetBgL 대비 현재 컬러칩 휘도 bgL)
+        const finalRatio = targetBgL > bgL ? (targetBgL + 0.05) / (bgL + 0.05) : (bgL + 0.05) / (targetBgL + 0.05);
         const formattedRatio = finalRatio.toFixed(2);
 
         let gradeText = '';
@@ -1751,6 +1770,39 @@
         // 비정상 포맷일 때 테두리 적색 하이라이트
         inputHex.classList.add('error');
         hexError.style.display = 'block';
+      }
+    });
+
+    // 대비 검사용 배경색 HEX 입력 감지
+    inputContrastBg.addEventListener('input', () => {
+      let rawHex = inputContrastBg.value.trim();
+      
+      // 샵 기호 정규화
+      if (rawHex.startsWith('#')) {
+        rawHex = rawHex.substring(1);
+        inputContrastBg.value = rawHex;
+      }
+
+      // HEX 정규식 패턴 검사 (3자리 혹은 6자리 유효성 판단)
+      const is3Digit = /^[0-9A-Fa-f]{3}$/.test(rawHex);
+      const is6Digit = /^[0-9A-Fa-f]{6}$/.test(rawHex);
+
+      if (is3Digit || is6Digit) {
+        inputContrastBg.classList.remove('error');
+        contrastBgError.style.display = 'none';
+
+        // 3자리 HEX 복원 (예: FFF -> FFFFFF)
+        let normalizedHex = rawHex;
+        if (is3Digit) {
+          normalizedHex = rawHex.split('').map(char => char + char).join('');
+        }
+
+        state.contrastBg = normalizedHex.toUpperCase();
+        syncAndRender();
+      } else {
+        // 비정상 포맷일 때 테두리 적색 하이라이트
+        inputContrastBg.classList.add('error');
+        contrastBgError.style.display = 'block';
       }
     });
 
