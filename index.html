@@ -873,6 +873,25 @@
         flex: 1;
         justify-content: center;
       }
+
+      .palette-header {
+        display: none;
+      }
+    }
+
+    .palette-header {
+      display: grid;
+      grid-template-columns: 60px 50px 110px 85px 120px 80px 1fr 180px;
+      align-items: center;
+      padding: 0.5rem 1.5rem;
+      margin-bottom: 0.4rem;
+      margin-top: 0.8rem;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      opacity: 0.75;
     }
 
     /* ----------------------------------------------------
@@ -1331,6 +1350,17 @@
         <p class="accessibility-info">
           ℹ️ <strong>웹 접근성(WCAG 2.1) 자동 준수</strong>: 스케일 칩 내부 글자 색상은 <strong>정밀 상대 휘도 대비 공식</strong>에 따라 배경과의 명도 대비율을 실시간 계산하여, 저시력 사용자도 읽기 편한 최적의 색상(어두운 글자/흰 글자)으로 자동 분기됩니다.
         </p>
+      </div>
+      <!-- 컬러 스케일 헤더 영역 -->
+      <div class="palette-header">
+        <div></div>
+        <div>Level</div>
+        <div>Token</div>
+        <div></div>
+        <div></div>
+        <div>명암비</div>
+        <div>결과</div>
+        <div></div>
       </div>
       <div class="palette-list" id="palette-list-container">
         <!-- JS 루프 돌며 동적 생성 -->
