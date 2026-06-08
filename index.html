@@ -553,6 +553,14 @@
       gap: 1.25rem;
     }
 
+    .accessibility-info {
+      width: 100%;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-top: 0.4rem;
+    }
+
     .palette-section-title {
       font-size: 1.3rem;
       font-weight: 700;
@@ -1250,6 +1258,10 @@
             JSON 다운로드
           </button>
         </div>
+        <!-- 웹 접근성(WCAG) 안내문구 -->
+        <p class="accessibility-info">
+          ℹ️ <strong>웹 접근성(WCAG 2.1) 자동 준수</strong>: 스케일 칩 내부 글자 색상은 <strong>정밀 상대 휘도 대비 공식</strong>에 따라 배경과의 명도 대비율을 실시간 계산하여, 저시력 사용자도 읽기 편한 최적의 색상(어두운 글자/흰 글자)으로 자동 분기됩니다.
+        </p>
       </div>
       <div class="palette-list" id="palette-list-container">
         <!-- JS 루프 돌며 동적 생성 -->
@@ -1453,6 +1465,15 @@
       return { hex, r, g, b };
     }
 
+    // WCAG 표준 선형 상대 휘도(Relative Luminance) 변환 함수
+    function getRelativeLuminance(r, g, b) {
+      const [sR, sG, sB] = [r / 255, g / 255, b / 255];
+      const R = sR <= 0.04045 ? sR / 12.92 : Math.pow((sR + 0.055) / 1.055, 2.4);
+      const G = sG <= 0.04045 ? sG / 12.92 : Math.pow((sG + 0.055) / 1.055, 2.4);
+      const B = sB <= 0.04045 ? sB / 12.92 : Math.pow((sB + 0.055) / 1.055, 2.4);
+      return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+    }
+
     // 3. 지능형 자동 색상 이동 (Auto Hue Shifting) 각도 연산기
     function calculateAutoHueShift(h) {
       // 0 ~ 360 도 대역별 탁해짐 해소 오프셋 산출
@@ -1588,9 +1609,15 @@
         // HEX 텍스트 갱신
         document.getElementById(`hex-${cfg.level}`).textContent = colorInfo.hex;
 
-        // JS YIQ 보강 가독성 처리
-        const yiq = ((colorInfo.r * 299) + (colorInfo.g * 587) + (colorInfo.b * 114)) / 1000;
-        chipEl.style.color = (yiq >= 148) ? '#0f172a' : '#ffffff';
+        // 웹 접근성(WCAG 2.1) 표준 상대 휘도 및 대비율에 기반한 자동 글자색 판별
+        const bgL = getRelativeLuminance(colorInfo.r, colorInfo.g, colorInfo.b);
+        const whiteL = 1.0;
+        const darkL = getRelativeLuminance(15, 23, 42); // #0f172a의 상대 휘도
+
+        const ratioWithWhite = (whiteL + 0.05) / (bgL + 0.05);
+        const ratioWithDark = bgL > darkL ? (bgL + 0.05) / (darkL + 0.05) : (darkL + 0.05) / (bgL + 0.05);
+
+        chipEl.style.color = (ratioWithDark >= ratioWithWhite) ? '#0f172a' : '#ffffff';
 
         // 해당 단계의 최종 OKLCH 실질 명시 수치 계산
         const rawLevelL = (state.l / 100) + cfg.lOffset;
