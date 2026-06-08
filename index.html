@@ -588,7 +588,7 @@
 
     .color-chip {
       display: grid;
-      grid-template-columns: 60px 50px 110px 85px 120px 1fr 180px;
+      grid-template-columns: 60px 50px 110px 85px 120px 80px 1fr 180px;
       align-items: center;
       padding: 0.75rem 1.5rem;
       background: rgba(255, 255, 255, 0.02);
@@ -672,6 +672,11 @@
       line-height: 1.45;
     }
 
+    .chip-badge-cell {
+      display: inline-flex;
+      align-items: center;
+    }
+
     .contrast-badge {
       display: inline-flex;
       align-items: center;
@@ -681,8 +686,7 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.02em;
-      margin-left: 0.35rem;
-      vertical-align: middle;
+      width: fit-content;
     }
 
     .contrast-badge.pass-normal {
@@ -820,7 +824,7 @@
       }
 
       .chip-swatch {
-        grid-row: span 3;
+        grid-row: span 4;
         width: 56px;
         height: 56px;
       }
@@ -846,9 +850,15 @@
       }
 
       .chip-contrast {
-        grid-column: 2 / span 2;
+        grid-column: 2;
         justify-self: start;
         font-size: 0.8rem;
+      }
+
+      .chip-badge-cell {
+        grid-column: 3;
+        justify-self: end;
+        align-self: center;
       }
 
       .chip-actions {
@@ -1500,6 +1510,7 @@
           <div class="chip-value hex" id="hex-${cfg.level}">-</div>
           <div class="chip-value oklch" id="oklch-${cfg.level}">-</div>
           <div class="chip-contrast" id="contrast-${cfg.level}">-</div>
+          <div class="chip-badge-cell" id="badge-cell-${cfg.level}">-</div>
           <div class="chip-actions">
             <button class="btn-copy" onclick="copyValue('${cfg.level}', 'hex')" style="color: inherit;">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
@@ -1714,7 +1725,12 @@
 
         const contrastEl = document.getElementById(`contrast-${cfg.level}`);
         if (contrastEl) {
-          contrastEl.innerHTML = `Aa<br>${formattedRatio}:1 <span class="contrast-badge ${badgeClass}">${gradeText}</span>`;
+          contrastEl.innerHTML = `Aa<br>${formattedRatio}:1`;
+        }
+
+        const badgeCellEl = document.getElementById(`badge-cell-${cfg.level}`);
+        if (badgeCellEl) {
+          badgeCellEl.innerHTML = `<span class="contrast-badge ${badgeClass}">${gradeText}</span>`;
         }
 
         // 해당 단계의 최종 OKLCH 실질 명시 수치 계산
