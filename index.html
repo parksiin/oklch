@@ -884,14 +884,101 @@
       grid-template-columns: 60px 50px 110px 85px 120px 80px 1fr 180px;
       align-items: center;
       padding: 0.5rem 1.5rem;
-      margin-bottom: 0.4rem;
-      margin-top: 0.8rem;
       font-size: 0.76rem;
       font-weight: 700;
       color: var(--text-secondary);
       letter-spacing: 0.05em;
       text-transform: uppercase;
       opacity: 0.75;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      padding-bottom: 0.75rem;
+    }
+
+    /* 툴팁 기본 구조 */
+    .tooltip-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      margin-left: 0.3rem;
+      vertical-align: middle;
+      cursor: pointer;
+    }
+
+    .tooltip-icon {
+      width: 13px;
+      height: 13px;
+      color: var(--text-secondary);
+      opacity: 0.7;
+      transition: opacity 0.2s, color 0.2s;
+    }
+
+    .tooltip-wrapper:hover .tooltip-icon {
+      opacity: 1;
+      color: var(--base-color);
+    }
+
+    .tooltip-content {
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%) scale(0.95);
+      width: 310px;
+      padding: 1rem 1.15rem;
+      background: rgba(15, 23, 42, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 12px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s cubic-bezier(0.25, 1, 0.5, 1), 
+                  transform 0.15s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .tooltip-wrapper:hover .tooltip-content {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) scale(1);
+    }
+
+    /* 툴팁 아래 화살표 */
+    .tooltip-content::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px;
+      border-style: solid;
+      border-color: rgba(15, 23, 42, 0.96) transparent transparent transparent;
+    }
+
+    .tooltip-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 0.6rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 0.4rem;
+      text-transform: none;
+      letter-spacing: -0.01em;
+    }
+
+    .tooltip-body {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      line-height: 1.55;
+      text-transform: none;
+      letter-spacing: -0.01em;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .tooltip-body p {
+      margin: 0;
     }
 
     /* ----------------------------------------------------
@@ -1348,19 +1435,10 @@
         </div>
         <!-- 웹 접근성(WCAG) 안내문구 -->
         <p class="accessibility-info">
-          ℹ️ <strong>웹 접근성(WCAG 2.1) 자동 준수</strong>: 스케일 칩 내부 글자 색상은 <strong>정밀 상대 휘도 대비 공식</strong>에 따라 배경과의 명도 대비율을 실시간 계산하여, 저시력 사용자도 읽기 편한 최적의 색상(어두운 글자/흰 글자)으로 자동 분기됩니다.
+          ℹ️ 화면에 보이는 컬러칩의 글자색(흑/백)은, 피그마에서 이 색상을 '배경'으로 쓸 때 그 위에 올려야 할 '텍스트' 색상의 정답지입니다.<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;칩 글씨가 어둡다면 👉 텍스트도 어두운 색(Gray-900 등) 계열 사용<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;칩 글씨가 하얗다면 👉 텍스트도 흰색(White) 계열 사용
         </p>
-      </div>
-      <!-- 컬러 스케일 헤더 영역 -->
-      <div class="palette-header">
-        <div></div>
-        <div>Level</div>
-        <div>Token</div>
-        <div></div>
-        <div></div>
-        <div>명암비</div>
-        <div>결과</div>
-        <div></div>
       </div>
       <div class="palette-list" id="palette-list-container">
         <!-- JS 루프 돌며 동적 생성 -->
@@ -1523,7 +1601,36 @@
 
     // 1. 컬러 팔레트 리스트 스켈레톤 초기 빌드
     function initPaletteHTML() {
-      paletteContainer.innerHTML = '';
+      paletteContainer.innerHTML = `
+        <!-- 컬러 스케일 헤더 영역 -->
+        <div class="palette-header">
+          <div></div>
+          <div>Level</div>
+          <div>Token</div>
+          <div></div>
+          <div></div>
+          <div>명암비</div>
+          <div style="display: inline-flex; align-items: center;">
+            결과
+            <span class="tooltip-wrapper">
+              <svg class="tooltip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              <div class="tooltip-content">
+                <div class="tooltip-title">WCAG 명암비 등급 가이드</div>
+                <div class="tooltip-body">
+                  <p><strong>PASS(N) (4.5 이상)</strong> : 프리패스<br>👉 일반 본문(12~14px)을 포함한 화면 내 모든 요소에 안전하게 사용 가능</p>
+                  <p><strong>PASS(L) (3.0 이상)</strong> : 조건부 사용<br>👉 본문 불가. 큰 제목(18pt↑), 아이콘, 테두리(Line) 등 큼직한 요소에만 제한적 사용</p>
+                  <p><strong>FAIL (3.0 미만)</strong> : 사용 불가<br>👉 가독성 미달. 텍스트 및 식별이 필요한 핵심 UI에 절대 적용 금지</p>
+                </div>
+              </div>
+            </span>
+          </div>
+          <div></div>
+        </div>
+      `;
       const configs = getActiveConfigs();
       configs.forEach(cfg => {
         const item = document.createElement('div');
