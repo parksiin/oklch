@@ -588,7 +588,7 @@
 
     .color-chip {
       display: grid;
-      grid-template-columns: 60px 50px 110px 85px 1fr 180px;
+      grid-template-columns: 60px 50px 110px 85px 1fr 170px 180px;
       align-items: center;
       padding: 0.75rem 1.5rem;
       background: rgba(255, 255, 255, 0.02);
@@ -660,6 +660,45 @@
 
     .chip-value.oklch {
       color: var(--text-secondary);
+    }
+
+    .chip-contrast {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .contrast-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.15rem 0.45rem;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .contrast-badge.pass-normal {
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .contrast-badge.pass-large {
+      background: rgba(234, 179, 8, 0.1);
+      color: #f59e0b;
+      border: 1px solid rgba(234, 179, 8, 0.25);
+    }
+
+    .contrast-badge.fail {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.25);
     }
 
     .chip-actions {
@@ -772,14 +811,14 @@
     @media (max-width: 900px) {
       .color-chip {
         grid-template-columns: 56px 1fr 1fr;
-        grid-template-rows: auto auto auto;
+        grid-template-rows: auto auto auto auto;
         row-gap: 0.8rem;
         column-gap: 1rem;
         padding: 1.25rem;
       }
 
       .chip-swatch {
-        grid-row: span 2;
+        grid-row: span 3;
         width: 56px;
         height: 56px;
       }
@@ -802,6 +841,12 @@
         grid-column: 2 / span 2;
         font-size: 0.8rem;
         padding-right: 0;
+      }
+
+      .chip-contrast {
+        grid-column: 2 / span 2;
+        justify-self: start;
+        font-size: 0.8rem;
       }
 
       .chip-actions {
@@ -1437,6 +1482,7 @@
           <div><span class="chip-var">${cfg.varName}</span></div>
           <div class="chip-value hex" id="hex-${cfg.level}">-</div>
           <div class="chip-value oklch" id="oklch-${cfg.level}">-</div>
+          <div class="chip-contrast" id="contrast-${cfg.level}">-</div>
           <div class="chip-actions">
             <button class="btn-copy" onclick="copyValue('${cfg.level}', 'hex')" style="color: inherit;">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
@@ -1618,6 +1664,29 @@
         const ratioWithDark = bgL > darkL ? (bgL + 0.05) / (darkL + 0.05) : (darkL + 0.05) / (bgL + 0.05);
 
         chipEl.style.color = (ratioWithDark >= ratioWithWhite) ? '#0f172a' : '#ffffff';
+
+        // WCAG 2.1 실시간 명암비 연산 및 3단계 등급 판별
+        const finalRatio = Math.max(ratioWithWhite, ratioWithDark);
+        const formattedRatio = finalRatio.toFixed(2);
+
+        let gradeText = '';
+        let badgeClass = '';
+
+        if (finalRatio >= 4.5) {
+          gradeText = 'Pass (Normal)';
+          badgeClass = 'pass-normal';
+        } else if (finalRatio >= 3.0) {
+          gradeText = 'Pass (Large/UI)';
+          badgeClass = 'pass-large';
+        } else {
+          gradeText = 'Fail';
+          badgeClass = 'fail';
+        }
+
+        const contrastEl = document.getElementById(`contrast-${cfg.level}`);
+        if (contrastEl) {
+          contrastEl.innerHTML = `Aa ${formattedRatio}:1 <span class="contrast-badge ${badgeClass}">${gradeText}</span>`;
+        }
 
         // 해당 단계의 최종 OKLCH 실질 명시 수치 계산
         const rawLevelL = (state.l / 100) + cfg.lOffset;
