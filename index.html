@@ -588,7 +588,7 @@
 
     .color-chip {
       display: grid;
-      grid-template-columns: 60px 50px 110px 85px 1fr 170px 180px;
+      grid-template-columns: 60px 50px 110px 85px 120px 1fr 180px;
       align-items: center;
       padding: 0.75rem 1.5rem;
       background: rgba(255, 255, 255, 0.02);
@@ -660,6 +660,8 @@
 
     .chip-value.oklch {
       color: var(--text-secondary);
+      line-height: 1.35;
+      font-size: 0.8rem;
     }
 
     .chip-contrast {
@@ -1721,8 +1723,8 @@
         let finalH = (state.h + stepShift) % 360;
         if (finalH < 0) finalH += 360;
 
-        const oklchValStr = `oklch(${clampedLevelL}% ${finalC.toFixed(3)} ${Math.round(finalH)})`;
-        document.getElementById(`oklch-${cfg.level}`).textContent = oklchValStr;
+        const oklchValHtml = `oklch<br>(${clampedLevelL}% ${finalC.toFixed(3)} ${Math.round(finalH)})`;
+        document.getElementById(`oklch-${cfg.level}`).innerHTML = oklchValHtml;
       });
 
       // 리셋
