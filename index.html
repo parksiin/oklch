@@ -120,7 +120,7 @@
     /* 대시보드와 컬러 스케일 뷰를 가로로 배치하기 위한 레이아웃 */
     .workspace-layout {
       display: grid;
-      grid-template-columns: 1fr 1.3fr;
+      grid-template-columns: 2fr 3fr;
       gap: 2.5rem;
       align-items: start;
     }
@@ -669,9 +669,7 @@
       font-size: 0.8rem;
       font-weight: 500;
       color: var(--text-secondary);
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
+      line-height: 1.45;
     }
 
     .contrast-badge {
@@ -683,6 +681,8 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.02em;
+      margin-left: 0.35rem;
+      vertical-align: middle;
     }
 
     .contrast-badge.pass-normal {
@@ -1702,10 +1702,10 @@
         let badgeClass = '';
 
         if (finalRatio >= 4.5) {
-          gradeText = 'Pass (Normal)';
+          gradeText = 'Pass(N)';
           badgeClass = 'pass-normal';
         } else if (finalRatio >= 3.0) {
-          gradeText = 'Pass (Large/UI)';
+          gradeText = 'Pass(L)';
           badgeClass = 'pass-large';
         } else {
           gradeText = 'Fail';
@@ -1714,7 +1714,7 @@
 
         const contrastEl = document.getElementById(`contrast-${cfg.level}`);
         if (contrastEl) {
-          contrastEl.innerHTML = `Aa ${formattedRatio}:1 <span class="contrast-badge ${badgeClass}">${gradeText}</span>`;
+          contrastEl.innerHTML = `Aa<br>${formattedRatio}:1 <span class="contrast-badge ${badgeClass}">${gradeText}</span>`;
         }
 
         // 해당 단계의 최종 OKLCH 실질 명시 수치 계산
