@@ -1231,7 +1231,7 @@
       padding: 0.35rem;
       border-radius: 14px;
       width: fit-content;
-      margin: 0 auto 0.5rem auto;
+      margin: 0 0 1.25rem 0;
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
     }
@@ -1266,12 +1266,6 @@
 <body>
 
   <div class="container">
-    
-    <!-- 글로벌 네비게이션 모드 전환 탭 -->
-    <nav class="gnb-tab-bar">
-      <a href="index.html" class="gnb-tab-item active">☀️ Light Mode</a>
-      <a href="dark.html" class="gnb-tab-item">🌙 Dark Mode</a>
-    </nav>
     
     <!-- 헤더 타이틀 -->
     <header class="header">
@@ -1486,6 +1480,13 @@
           칩 글씨가 하얗다면 👉 텍스트도 흰색(White) 계열 사용
         </p>
       </div>
+
+      <!-- 글로벌 네비게이션 모드 전환 탭 -->
+      <nav class="gnb-tab-bar">
+        <a href="index.html" class="gnb-tab-item active">☀️ Light Mode</a>
+        <a href="dark.html" class="gnb-tab-item">🌙 Dark Mode</a>
+      </nav>
+
       <div class="palette-list" id="palette-list-container">
         <!-- JS 루프 돌며 동적 생성 -->
       </div>
