@@ -50,16 +50,16 @@
       --c-ratio-900: 0.60;
 
       /* [요구사항] 동적 채도 비율(--c-ratio-X)을 연동한 비선형 10단계 계산 */
-      --color-50: oklch(from var(--base-color) calc(l + 0.35) calc(c * var(--c-ratio-50)) calc(h + var(--h-shift-50)));
-      --color-100: oklch(from var(--base-color) calc(l + 0.30) calc(c * var(--c-ratio-100)) calc(h + var(--h-shift-100)));
-      --color-200: oklch(from var(--base-color) calc(l + 0.22) calc(c * var(--c-ratio-200)) calc(h + var(--h-shift-200)));
-      --color-300: oklch(from var(--base-color) calc(l + 0.12) calc(c * var(--c-ratio-300)) calc(h + var(--h-shift-300)));
-      --color-400: oklch(from var(--base-color) calc(l + 0.05) calc(c * var(--c-ratio-400)) calc(h + var(--h-shift-400)));
-      --color-500: var(--base-color);
-      --color-600: oklch(from var(--base-color) calc(l - 0.08) calc(c * var(--c-ratio-600)) calc(h + var(--h-shift-600)));
-      --color-700: oklch(from var(--base-color) calc(l - 0.18) calc(c * var(--c-ratio-700)) calc(h + var(--h-shift-700)));
-      --color-800: oklch(from var(--base-color) calc(l - 0.28) calc(c * var(--c-ratio-800)) calc(h + var(--h-shift-800)));
-      --color-900: oklch(from var(--base-color) calc(l - 0.40) calc(c * var(--c-ratio-900)) calc(h + var(--h-shift-900)));
+      --color-50: oklch(from var(--base-color) calc(l - 0.40) calc(c * var(--c-ratio-50)) calc(h + var(--h-shift-50)));
+      --color-100: oklch(from var(--base-color) calc(l - 0.28) calc(c * var(--c-ratio-100)) calc(h + var(--h-shift-100)));
+      --color-200: oklch(from var(--base-color) calc(l - 0.18) calc(c * var(--c-ratio-200)) calc(h + var(--h-shift-200)));
+      --color-300: oklch(from var(--base-color) calc(l - 0.08) calc(c * var(--c-ratio-300)) calc(h + var(--h-shift-300)));
+      --color-400: var(--base-color);
+      --color-500: oklch(from var(--base-color) calc(l + 0.05) calc(c * var(--c-ratio-500)) calc(h + var(--h-shift-500)));
+      --color-600: oklch(from var(--base-color) calc(l + 0.12) calc(c * var(--c-ratio-600)) calc(h + var(--h-shift-600)));
+      --color-700: oklch(from var(--base-color) calc(l + 0.22) calc(c * var(--c-ratio-700)) calc(h + var(--h-shift-700)));
+      --color-800: oklch(from var(--base-color) calc(l + 0.30) calc(c * var(--c-ratio-800)) calc(h + var(--h-shift-800)));
+      --color-900: oklch(from var(--base-color) calc(l + 0.35) calc(c * var(--c-ratio-900)) calc(h + var(--h-shift-900)));
 
       /* 테마 레이아웃용 컬러 토큰 */
       --bg-dark: #07090e;
@@ -1269,8 +1269,8 @@
     
     <!-- 글로벌 네비게이션 모드 전환 탭 -->
     <nav class="gnb-tab-bar">
-      <a href="index.html" class="gnb-tab-item active">☀️ Light Mode</a>
-      <a href="dark.html" class="gnb-tab-item">🌙 Dark Mode</a>
+      <a href="index.html" class="gnb-tab-item">☀️ Light Mode</a>
+      <a href="dark.html" class="gnb-tab-item active">🌙 Dark Mode</a>
     </nav>
     
     <!-- 헤더 타이틀 -->
@@ -1579,29 +1579,29 @@
   <script>
     // [요구사항] 다중 채도 감쇄(Chroma Easing)를 위한 10단계 곡선 설정 분리
     const standardConfigs = [
-      { level: 50,  lOffset: 0.35,  cRatio: 0.15, varName: '--color-50' },
-      { level: 100, lOffset: 0.30,  cRatio: 0.30, varName: '--color-100' },
-      { level: 200, lOffset: 0.22,  cRatio: 0.50, varName: '--color-200' },
-      { level: 300, lOffset: 0.12,  cRatio: 0.75, varName: '--color-300' },
-      { level: 400, lOffset: 0.05,  cRatio: 0.90, varName: '--color-400' },
-      { level: 500, lOffset: 0.00,  cRatio: 1.00, varName: '--color-500' }, // Base Color
-      { level: 600, lOffset: -0.08, cRatio: 0.95, varName: '--color-600' },
-      { level: 700, lOffset: -0.18, cRatio: 0.85, varName: '--color-700' },
-      { level: 800, lOffset: -0.28, cRatio: 0.75, varName: '--color-800' },
-      { level: 900, lOffset: -0.40, cRatio: 0.60, varName: '--color-900' }
+      { level: 50,  lOffset: -0.40, cRatio: 0.15, varName: '--color-50' },
+      { level: 100, lOffset: -0.28, cRatio: 0.30, varName: '--color-100' },
+      { level: 200, lOffset: -0.18, cRatio: 0.50, varName: '--color-200' },
+      { level: 300, lOffset: -0.08, cRatio: 0.75, varName: '--color-300' },
+      { level: 400, lOffset: 0.00,  cRatio: 0.90, varName: '--color-400' }, // Base Color
+      { level: 500, lOffset: 0.05,  cRatio: 1.00, varName: '--color-500' },
+      { level: 600, lOffset: 0.12,  cRatio: 0.95, varName: '--color-600' },
+      { level: 700, lOffset: 0.22,  cRatio: 0.85, varName: '--color-700' },
+      { level: 800, lOffset: 0.30,  cRatio: 0.75, varName: '--color-800' },
+      { level: 900, lOffset: 0.35,  cRatio: 0.60, varName: '--color-900' }
     ];
 
     const subtleConfigs = [
-      { level: 50,  lOffset: 0.35,  cRatio: 0.08, varName: '--color-50' },
-      { level: 100, lOffset: 0.30,  cRatio: 0.18, varName: '--color-100' },
-      { level: 200, lOffset: 0.22,  cRatio: 0.35, varName: '--color-200' },
-      { level: 300, lOffset: 0.12,  cRatio: 0.60, varName: '--color-300' },
-      { level: 400, lOffset: 0.05,  cRatio: 0.85, varName: '--color-400' },
-      { level: 500, lOffset: 0.00,  cRatio: 1.00, varName: '--color-500' }, // Base Color
-      { level: 600, lOffset: -0.08, cRatio: 0.85, varName: '--color-600' },
-      { level: 700, lOffset: -0.18, cRatio: 0.60, varName: '--color-700' },
-      { level: 800, lOffset: -0.28, cRatio: 0.35, varName: '--color-800' },
-      { level: 900, lOffset: -0.40, cRatio: 0.15, varName: '--color-900' }
+      { level: 50,  lOffset: -0.40, cRatio: 0.08, varName: '--color-50' },
+      { level: 100, lOffset: -0.28, cRatio: 0.18, varName: '--color-100' },
+      { level: 200, lOffset: -0.18, cRatio: 0.35, varName: '--color-200' },
+      { level: 300, lOffset: -0.08, cRatio: 0.60, varName: '--color-300' },
+      { level: 400, lOffset: 0.00,  cRatio: 0.85, varName: '--color-400' }, // Base Color
+      { level: 500, lOffset: 0.05,  cRatio: 1.00, varName: '--color-500' },
+      { level: 600, lOffset: 0.12,  cRatio: 0.85, varName: '--color-600' },
+      { level: 700, lOffset: 0.22,  cRatio: 0.60, varName: '--color-700' },
+      { level: 800, lOffset: 0.30,  cRatio: 0.35, varName: '--color-800' },
+      { level: 900, lOffset: 0.35,  cRatio: 0.15, varName: '--color-900' }
     ];
 
     // 활성 채도 감쇄 모드 설정을 가져오는 헬퍼 함수
@@ -1774,9 +1774,10 @@
       const darkB = Math.round(darkColorSrgb.coords[2] * 255);
       const darkL = getRelativeLuminance(darkR, darkG, darkB);
 
-      // [요구사항] 동적 채도 비율(--c-ratio-X)을 :root CSS 속성에 실시간 주입
+      // [요구사항] 동적 채도 비율(--c-ratio-X)을 :root CSS 속성에 실시간 주입 (다크 모드 25% 감쇄 적용)
       activeConfigs.forEach(cfg => {
-        root.style.setProperty(`--c-ratio-${cfg.level}`, cfg.cRatio.toFixed(2));
+        const darkChromaRatio = cfg.cRatio * 0.75;
+        root.style.setProperty(`--c-ratio-${cfg.level}`, darkChromaRatio.toFixed(2));
       });
 
       // A. 지능형 Hue Shift 각도 설정 및 연산
@@ -1803,21 +1804,38 @@
         shiftNum.value = 0;
       }
 
-      // B. 단계별 비선형 Hue Shift 각도 가중치를 CSS 속성에 주입
+      // B. 단계별 비선형 Hue Shift 각도 가중치를 계산하고 250도 타겟 Lerp 쿨톤 블렌딩을 적용하여 CSS 속성에 주입
       activeConfigs.forEach(cfg => {
         let stepShift = 0;
-        if (cfg.level === 500) {
+        if (cfg.level === 400) {
+          // 다크 모드에서는 400단계가 Base Color(lOffset = 0.00)입니다.
           stepShift = 0;
-        } else if (cfg.level < 500) {
-          // 밝은 영역: 500에서 50으로 멀어질수록 역방향 시프트 (더 맑고 차가운 레몬빛화 등)
-          const factor = (500 - cfg.level) / 450; // 0.1 ~ 1.0
+        } else if (cfg.level < 400) {
+          // 밝은 영역: 400에서 50으로 멀어질수록 역방향 시프트
+          const factor = (400 - cfg.level) / 350;
           stepShift = targetMaxShift * -0.45 * factor;
         } else {
-          // 어두운 영역: 500에서 900으로 멀어질수록 정방향 점진 시프트
-          const factor = (cfg.level - 500) / 400; // 0.2 ~ 1.0
+          // 어두운 영역: 400에서 900으로 멀어질수록 정방향 점진 시프트
+          const factor = (cfg.level - 400) / 500;
           stepShift = targetMaxShift * factor;
         }
-        root.style.setProperty(`--h-shift-${cfg.level}`, stepShift.toFixed(2));
+
+        // 1차 색상 연산 (Base Hue + 시프트)
+        const rawHue = (state.h + stepShift) % 360;
+        const normalizedHue = rawHue < 0 ? rawHue + 360 : rawHue;
+
+        // 2차 타겟(250도) Lerp 블렌딩 (최단 경로 적용)
+        let diff = 250 - normalizedHue;
+        if (diff > 180) diff -= 360;
+        if (diff < -180) diff += 360;
+
+        let finalH = normalizedHue + diff * 0.05;
+        if (finalH < 0) finalH += 360;
+        if (finalH >= 360) finalH -= 360;
+
+        // 최종 시프트 각도 = 최종 Hue - 원본 Hue
+        let finalShift = finalH - state.h;
+        root.style.setProperty(`--h-shift-${cfg.level}`, finalShift.toFixed(2));
       });
 
       // C. L, C, H 개별 변수 갱신 (슬라이더 배경 그라데이션 동적 렌더링용)
@@ -1919,16 +1937,28 @@
         // 해당 단계의 최종 OKLCH 실질 명시 수치 계산
         const rawLevelL = (state.l / 100) + cfg.lOffset;
         const clampedLevelL = Math.max(0, Math.min(100, Math.round(rawLevelL * 100)));
-        const finalC = state.c * cfg.cRatio;
+        const finalC = state.c * cfg.cRatio * 0.75; // 다크 채도 25% 감쇄 적용
 
-        // 색상 이동 가중치 적용
+        // 색상 이동 가중치 적용 및 250도 타겟 Lerp 쿨톤 블렌딩 연동
         let stepShift = 0;
-        if (cfg.level === 500) stepShift = 0;
-        else if (cfg.level < 500) stepShift = targetMaxShift * -0.45 * ((500 - cfg.level) / 450);
-        else stepShift = targetMaxShift * ((cfg.level - 500) / 400);
+        if (cfg.level === 400) {
+          stepShift = 0;
+        } else if (cfg.level < 400) {
+          stepShift = targetMaxShift * -0.45 * ((400 - cfg.level) / 350);
+        } else {
+          stepShift = targetMaxShift * ((cfg.level - 400) / 500);
+        }
 
-        let finalH = (state.h + stepShift) % 360;
+        const rawHue = (state.h + stepShift) % 360;
+        const normalizedHue = rawHue < 0 ? rawHue + 360 : rawHue;
+
+        let diff = 250 - normalizedHue;
+        if (diff > 180) diff -= 360;
+        if (diff < -180) diff += 360;
+
+        let finalH = normalizedHue + diff * 0.05;
         if (finalH < 0) finalH += 360;
+        if (finalH >= 360) finalH -= 360;
 
         const oklchValHtml = `oklch<br>(${clampedLevelL}% ${finalC.toFixed(3)} ${Math.round(finalH)})`;
         document.getElementById(`oklch-${cfg.level}`).innerHTML = oklchValHtml;
@@ -2226,7 +2256,7 @@
       const rootObject = {};
       rootObject[groupName] = groupObject;
       rootObject["$extensions"] = {
-        "com.figma.modeName": "Light"
+        "com.figma.modeName": "Dark"
       };
       
       return rootObject;
@@ -2268,9 +2298,9 @@
       const url = URL.createObjectURL(blob);
       // 500단계의 HEX 추출 (예: #3182F6 -> 3182f6)
       const groupName = "adaptive" + rawGroupName;
-      const hex500 = figmaData[groupName]["500"].$value.hex.replace('#', '').toLowerCase();
+      const hex400 = figmaData[groupName]["400"].$value.hex.replace('#', '').toLowerCase();
       
-      const fileName = `color-${rawGroupName.toLowerCase()}-${hex500}-${state.chromaEasingMode}.json`; // 요구사항: color-blue-3182f6-subtle.json 등
+      const fileName = `color-${rawGroupName.toLowerCase()}-${hex400}-${state.chromaEasingMode}-dark.json`; // 다크 모드용 파일명 (-dark 추가)
       
       const a = document.createElement("a");
       a.href = url;
