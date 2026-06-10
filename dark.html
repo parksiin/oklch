@@ -1964,6 +1964,9 @@
         document.getElementById(`oklch-${cfg.level}`).innerHTML = oklchValHtml;
       });
 
+      // URL 및 LocalStorage 상태 동기화 트리거
+      persistBaseColorState(baseColorInfo.hex);
+
       // 리셋
       state.lastUpdatedSource = null;
     }
@@ -2315,12 +2318,50 @@
       showToast(`Figma 토큰 파일 다운로드 완료: ${fileName}`);
     }
 
+    // URL 및 LocalStorage에 현재 HEX 상태를 실시간 저장하고 GNB 링크 갱신
+    function persistBaseColorState(hex) {
+      const cleanHex = hex.replace('#', '').toUpperCase();
+      
+      // 1. URL 쿼리 실시간 동기화
+      window.history.replaceState(null, '', `?hex=${cleanHex}`);
+      
+      // 2. LocalStorage 백업
+      localStorage.setItem('baseHex', cleanHex);
+      
+      // 3. GNB 탭 링크 동적 갱신 (쿼리 파라미터 바인딩)
+      const lightTab = document.querySelector('.gnb-tab-bar a[href*="index.html"]');
+      const darkTab = document.querySelector('.gnb-tab-bar a[href*="dark.html"]');
+      if (lightTab) lightTab.href = `index.html?hex=${cleanHex}`;
+      if (darkTab) darkTab.href = `dark.html?hex=${cleanHex}`;
+    }
+
     // 8. 초기 부팅
     function init() {
       initPaletteHTML();
       
-      // 토스 블루 프리셋 로딩하여 앱 초기화
-      loadPresetColor('#3182f6', 'Toss');
+      // URL 및 LocalStorage에서 복구 시도
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlHex = urlParams.get('hex');
+      const savedHex = localStorage.getItem('baseHex');
+      
+      let targetHex = '3182F6'; // 기본값 (Toss Blue)
+      
+      // 3자리 또는 6자리 HEX 검증 정규식 (제미나이 엣지케이스 피드백 반영)
+      const hexRegex = /^([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
+      
+      if (urlHex && hexRegex.test(urlHex)) {
+        targetHex = urlHex;
+      } else if (savedHex && hexRegex.test(savedHex)) {
+        targetHex = savedHex;
+      }
+      
+      // 3자리 단축 HEX 감지 시 6자리 표준화 처리
+      if (targetHex.length === 3) {
+        targetHex = targetHex.split('').map(char => char + char).join('');
+      }
+      
+      // 해당 색상으로 강제 주입 로드하여 부팅
+      loadPresetColor('#' + targetHex, 'Init');
 
       // 그라데이션 테스터 초기 렌더링 설정
       updateTesterGradient();
