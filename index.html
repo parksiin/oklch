@@ -1766,14 +1766,8 @@
       const targetBgColorInfo = parseColor('#' + state.contrastBg);
       const targetBgL = getRelativeLuminance(targetBgColorInfo.r, targetBgColorInfo.g, targetBgColorInfo.b);
 
-      // 어두운 글자색(oklch(44.6% 0.043 257.281)) 상대 휘도 연산
-      const darkColorOklchStr = 'oklch(44.6% 0.043 257.281)';
-      const darkColorObj = new Color(darkColorOklchStr);
-      const darkColorSrgb = darkColorObj.to('srgb');
-      const darkR = Math.round(darkColorSrgb.coords[0] * 255);
-      const darkG = Math.round(darkColorSrgb.coords[1] * 255);
-      const darkB = Math.round(darkColorSrgb.coords[2] * 255);
-      const darkL = getRelativeLuminance(darkR, darkG, darkB);
+      // 어두운 글자색(기본 비교 기준값: #0f172a) 상대 휘도 연산
+      const darkL = getRelativeLuminance(15, 23, 42);
 
       // [요구사항] 동적 채도 비율(--c-ratio-X)을 :root CSS 속성에 실시간 주입
       activeConfigs.forEach(cfg => {
