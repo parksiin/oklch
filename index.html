@@ -133,10 +133,19 @@
     }
 
     .header {
-      text-align: center;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 1.5rem;
+      gap: 1.5rem;
+    }
+
+    .header-main-content {
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
+      text-align: left;
     }
 
     .header h1 {
@@ -153,6 +162,39 @@
       color: var(--text-secondary);
       font-size: 1.05rem;
       font-weight: 300;
+    }
+
+    .btn-nav-neutral {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+      padding: 0.6rem 1.2rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .btn-nav-neutral:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--accent-color);
+      box-shadow: 0 0 15px rgba(49, 130, 246, 0.2);
+    }
+
+    @media (max-width: 900px) {
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+      .header-main-content {
+        text-align: left;
+      }
     }
 
     /* ----------------------------------------------------
@@ -1269,8 +1311,14 @@
     
     <!-- 헤더 타이틀 -->
     <header class="header">
-      <h1>OKLCH 다차원 컬러 팔레트 제너레이터</h1>
-      <p>토스 컬러시스템 기반의 입체적 채도/색조 보정 및 정밀 양방향 바인딩 엔진</p>
+      <div class="header-main-content">
+        <h1>OKLCH 다차원 컬러 팔레트 제너레이터</h1>
+        <p>토스 컬러시스템 기반의 입체적 채도/색조 보정 및 정밀 양방향 바인딩 엔진</p>
+      </div>
+      <a href="neutral_generator.html" class="btn-nav-neutral">
+        무채색 제너레이터로 가기
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+      </a>
     </header>
 
     <!-- 토스 컬러 레퍼런스 프리셋 패널 -->
@@ -1456,8 +1504,8 @@
     <section class="palette-section">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.5rem;">
         <h2 class="palette-section-title">입체 보정된 10단계 다차원 컬러 스케일</h2>
-        <div style="display: flex; gap: 0.5rem; align-items: center;">
-          <button class="btn-figma" onclick="copyFigmaJSON()">
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <button class="btn-figma" onclick="copyFigmaJSON('light')">
             <!-- Figma 알록달록한 오리지널 로고 형태 SVG -->
             <svg width="12" height="18" viewBox="0 0 14 21" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M3.5 0C1.57 0 0 1.57 0 3.5C0 5.43 1.57 7 3.5 7H7V0H3.5Z" fill="#F24E1E"/>
@@ -1466,11 +1514,26 @@
               <path d="M0 17.5C0 15.57 1.57 14 3.5 14H7V17.5C7 19.43 5.43 21 3.5 21C1.57 21 0 19.43 0 17.5Z" fill="#1ABC9C"/>
               <path d="M10.5 7C8.57 7 7 8.57 7 10.5V14H10.5C12.43 14 14 12.43 14 10.5C14 8.57 12.43 7 10.5 7Z" fill="#19BCFE"/>
             </svg>
-            Figma JSON 토큰 복사
+            Copy Light JSON
           </button>
-          <button class="btn-figma-download" onclick="downloadFigmaJSON()">
+          <button class="btn-figma" onclick="copyFigmaJSON('dark')">
+            <!-- Figma 알록달록한 오리지널 로고 형태 SVG -->
+            <svg width="12" height="18" viewBox="0 0 14 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3.5 0C1.57 0 0 1.57 0 3.5C0 5.43 1.57 7 3.5 7H7V0H3.5Z" fill="#F24E1E"/>
+              <path d="M10.5 0C8.57 0 7 1.57 7 3.5V7H10.5C12.43 7 14 5.43 14 3.5C14 1.57 12.43 0 10.5 0Z" fill="#FF7262"/>
+              <path d="M7 7H3.5C1.57 7 0 8.57 0 10.5C0 12.43 1.57 14 3.5 14H7V7Z" fill="#A259FF"/>
+              <path d="M0 17.5C0 15.57 1.57 14 3.5 14H7V17.5C7 19.43 5.43 21 3.5 21C1.57 21 0 19.43 0 17.5Z" fill="#1ABC9C"/>
+              <path d="M10.5 7C8.57 7 7 8.57 7 10.5V14H10.5C12.43 14 14 12.43 14 10.5C14 8.57 12.43 7 10.5 7Z" fill="#19BCFE"/>
+            </svg>
+            Copy Dark JSON
+          </button>
+          <button class="btn-figma-download" onclick="downloadFigmaJSON('light')">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-            JSON 다운로드
+            Download Light (.json)
+          </button>
+          <button class="btn-figma-download" onclick="downloadFigmaJSON('dark')">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Download Dark (.json)
           </button>
         </div>
         <!-- 웹 접근성(WCAG) 안내문구 -->
@@ -1603,6 +1666,33 @@
       { level: 700, lOffset: -0.18, cRatio: 0.60, varName: '--color-700' },
       { level: 800, lOffset: -0.28, cRatio: 0.35, varName: '--color-800' },
       { level: 900, lOffset: -0.40, cRatio: 0.15, varName: '--color-900' }
+    ];
+
+    // 다크 모드 연산 전용 Configs 테이블 (400단계가 Base Color 기준)
+    const darkStandardConfigs = [
+      { level: 50,  lOffset: -0.40, cRatio: 0.15 },
+      { level: 100, lOffset: -0.28, cRatio: 0.30 },
+      { level: 200, lOffset: -0.18, cRatio: 0.50 },
+      { level: 300, lOffset: -0.08, cRatio: 0.75 },
+      { level: 400, lOffset: 0.00,  cRatio: 0.90 },
+      { level: 500, lOffset: 0.05,  cRatio: 1.00 },
+      { level: 600, lOffset: 0.12,  cRatio: 0.95 },
+      { level: 700, lOffset: 0.22,  cRatio: 0.85 },
+      { level: 800, lOffset: 0.30,  cRatio: 0.75 },
+      { level: 900, lOffset: 0.35,  cRatio: 0.60 }
+    ];
+
+    const darkSubtleConfigs = [
+      { level: 50,  lOffset: -0.40, cRatio: 0.08 },
+      { level: 100, lOffset: -0.28, cRatio: 0.18 },
+      { level: 200, lOffset: -0.18, cRatio: 0.35 },
+      { level: 300, lOffset: -0.08, cRatio: 0.60 },
+      { level: 400, lOffset: 0.00,  cRatio: 0.85 },
+      { level: 500, lOffset: 0.05,  cRatio: 1.00 },
+      { level: 600, lOffset: 0.12,  cRatio: 0.85 },
+      { level: 700, lOffset: 0.22,  cRatio: 0.60 },
+      { level: 800, lOffset: 0.30,  cRatio: 0.35 },
+      { level: 900, lOffset: 0.35,  cRatio: 0.15 }
     ];
 
     // 활성 채도 감쇄 모드 설정을 가져오는 헬퍼 함수
@@ -2190,53 +2280,108 @@
     }
 
     // Figma 내장 디자인 토큰(W3C DTCG) 고유 확장 규격용 JSON 데이터 빌더 함수
-    function buildFigmaJSONSchema() {
+    function buildFigmaJSONSchema(mode) {
       const rawGroupName = getColorGroupName(state.h);
       const groupName = "adaptive" + rawGroupName;
-      
       const groupObject = {};
-      const activeConfigs = getActiveConfigs();
       
-      activeConfigs.forEach(cfg => {
-        const chipEl = document.getElementById(`chip-${cfg.level}`);
-        const swatchEl = chipEl.querySelector('.chip-swatch');
-        
-        // 브라우저 렌더링 엔진이 최종 연산한 색상 확보
-        const computedColor = window.getComputedStyle(swatchEl).backgroundColor;
-        const colorInfo = parseColor(computedColor);
-        
-        // R, G, B 각각 255로 나눈 0~1 사이의 소수점 형태 실수 계산
-        const rNorm = parseFloat((colorInfo.r / 255).toFixed(3));
-        const gNorm = parseFloat((colorInfo.g / 255).toFixed(3));
-        const bNorm = parseFloat((colorInfo.b / 255).toFixed(3));
+      // 1. 모드에 따른 설정 테이블 분기
+      let configs = [];
+      if (mode === 'light') {
+        configs = getActiveConfigs(); // standardConfigs 혹은 subtleConfigs
+      } else {
+        configs = state.chromaEasingMode === 'standard' ? darkStandardConfigs : darkSubtleConfigs;
+      }
+      
+      // 2. 공통 Hue Shift 한계값 획득
+      let targetMaxShift = 0;
+      if (state.shiftMode === 'auto') {
+        targetMaxShift = calculateAutoHueShift(state.h);
+      } else if (state.shiftMode === 'manual') {
+        targetMaxShift = state.shiftManualVal;
+      }
 
+      configs.forEach(cfg => {
+        // A. 명도 L 연산 및 범위 클램프
+        let targetL = state.l + (cfg.lOffset * 100);
+        targetL = Math.max(0, Math.min(100, targetL));
+
+        // B. 채도 C 연산 및 다크 모드 추가 25% 감쇄 적용
+        let targetC = state.c * cfg.cRatio;
+        if (mode === 'dark') {
+          targetC = targetC * 0.75; // 다크 모드 25% 감쇄
+        }
+        targetC = Math.max(0, targetC);
+
+        // C. 색상 H 연산 (지능형 Hue Shift 적용)
+        let stepShift = 0;
+        if (mode === 'light') {
+          if (cfg.level !== 500) {
+            const factor = cfg.level < 500 ? (500 - cfg.level) / 450 : (cfg.level - 500) / 400;
+            stepShift = cfg.level < 500 ? targetMaxShift * -0.45 * factor : targetMaxShift * factor;
+          }
+        } else { // dark 모드 기준 (400단계가 시프트 기준점)
+          if (cfg.level !== 400) {
+            const factor = cfg.level < 400 ? (400 - cfg.level) / 350 : (cfg.level - 400) / 500;
+            stepShift = cfg.level < 400 ? targetMaxShift * -0.45 * factor : targetMaxShift * factor;
+          }
+        }
+
+        const rawHue = (state.h + stepShift) % 360;
+        const normalizedHue = rawHue < 0 ? rawHue + 360 : rawHue;
+
+        // 2차 타겟(250도) Lerp 블렌딩 (최단 경로 적용)
+        let diff = 250 - normalizedHue;
+        if (diff > 180) diff -= 360;
+        if (diff < -180) diff += 360;
+
+        let finalH = normalizedHue + diff * 0.05;
+        if (finalH < 0) finalH += 360;
+        if (finalH >= 360) finalH -= 360;
+
+        // D. Color.js 공간 변환 및 sRGB 클리핑 핫픽스 적용
+        const oklchColor = new Color('oklch', [targetL / 100, targetC, finalH]);
+        const srgbCoords = oklchColor.to('srgb').coords;
+
+        // 0.0 ~ 1.0 범위 강제 클램핑
+        const rNorm = Math.max(0, Math.min(1, srgbCoords[0]));
+        const gNorm = Math.max(0, Math.min(1, srgbCoords[1]));
+        const bNorm = Math.max(0, Math.min(1, srgbCoords[2]));
+
+        // E. W3C/Figma DTCG 규격 객체 완성 (hex 속성은 규격에 따라 제거)
         groupObject[cfg.level] = {
           "$type": "color",
           "$value": {
             "colorSpace": "srgb",
-            "components": [rNorm, gNorm, bNorm],
-            "alpha": 1,
-            "hex": colorInfo.hex
+            "components": [
+              parseFloat(rNorm.toFixed(3)),
+              parseFloat(gNorm.toFixed(3)),
+              parseFloat(bNorm.toFixed(3))
+            ],
+            "alpha": 1
+          },
+          "$extensions": {
+            "com.figma.scopes": ["ALL_SCOPES"]
           }
         };
       });
-      
+
       const rootObject = {};
       rootObject[groupName] = groupObject;
       rootObject["$extensions"] = {
-        "com.figma.modeName": "Light"
+        "com.figma.modeName": mode === 'light' ? 'Light' : 'Dark'
       };
-      
+
       return rootObject;
     }
 
     // Figma Variables 전용 내장 임포트 규격 JSON 클립보드 복사 함수
-    function copyFigmaJSON() {
-      const figmaData = buildFigmaJSONSchema();
+    function copyFigmaJSON(mode) {
+      const figmaData = buildFigmaJSONSchema(mode);
       const jsonString = JSON.stringify(figmaData, null, 2);
       
       navigator.clipboard.writeText(jsonString).then(() => {
-        showToast(`Figma 표준 토큰 JSON이 클립보드에 복사되었습니다.<br>피그마 Variables 플러그인에 붙여넣으세요!`);
+        showToast(`Figma 표준 토큰 JSON (${mode === 'light' ? 'Light' : 'Dark'})이 클립보드에 복사되었습니다.<br>피그마 Variables 플러그인에 붙여넣으세요!`);
       }).catch(err => {
         console.error("피그마 JSON 복사 실패:", err);
         showToast("JSON 복사에 실패했습니다.");
@@ -2256,19 +2401,55 @@
     }
 
     // Figma Variables 전용 내장 임포트 규격 JSON 로컬 파일 직접 다운로드 함수
-    function downloadFigmaJSON() {
+    function downloadFigmaJSON(mode) {
       const rawGroupName = getColorGroupName(state.h);
-      const figmaData = buildFigmaJSONSchema();
+      const figmaData = buildFigmaJSONSchema(mode);
       const jsonString = JSON.stringify(figmaData, null, 2);
       
       // Blob 및 URL.createObjectURL을 이용한 클라이언트 사이드 즉시 다운로드 구현
       const blob = new Blob([jsonString], { type: "application/json" });
       const url = URL.createObjectURL(blob);
-      // 500단계의 HEX 추출 (예: #3182F6 -> 3182f6)
-      const groupName = "adaptive" + rawGroupName;
-      const hex500 = figmaData[groupName]["500"].$value.hex.replace('#', '').toLowerCase();
       
-      const fileName = `color-${rawGroupName.toLowerCase()}-${hex500}-${state.chromaEasingMode}.json`; // 요구사항: color-blue-3182f6-subtle.json 등
+      // 파일명 구성을 위해 500단계의 임시 HEX 계산 (colorjs.io 사용)
+      let hex500 = "ffffff";
+      try {
+        let configs = mode === 'light' ? getActiveConfigs() : (state.chromaEasingMode === 'standard' ? darkStandardConfigs : darkSubtleConfigs);
+        let cfg500 = configs.find(c => c.level === 500);
+        let targetL = state.l + (cfg500.lOffset * 100);
+        let targetC = state.c * cfg500.cRatio;
+        if (mode === 'dark') targetC = targetC * 0.75;
+        
+        let stepShift = 0;
+        let targetMaxShift = 0;
+        if (state.shiftMode === 'auto') {
+          targetMaxShift = calculateAutoHueShift(state.h);
+        } else if (state.shiftMode === 'manual') {
+          targetMaxShift = state.shiftManualVal;
+        }
+        
+        if (mode === 'light') {
+          stepShift = 0;
+        } else {
+          const factor = (500 - 400) / 500;
+          stepShift = targetMaxShift * factor;
+        }
+        
+        const rawHue = (state.h + stepShift) % 360;
+        const normalizedHue = rawHue < 0 ? rawHue + 360 : rawHue;
+        let diff = 250 - normalizedHue;
+        if (diff > 180) diff -= 360;
+        if (diff < -180) diff += 360;
+        let finalH = normalizedHue + diff * 0.05;
+        if (finalH < 0) finalH += 360;
+        if (finalH >= 360) finalH -= 360;
+        
+        let col = new Color('oklch', [targetL / 100, targetC, finalH]);
+        hex500 = col.to('srgb').toString({ format: 'hex' }).replace('#', '').toLowerCase();
+      } catch (e) {
+        console.error("HEX 500 계산 에러:", e);
+      }
+      
+      const fileName = `color-${rawGroupName.toLowerCase()}-${hex500}-${state.chromaEasingMode}-${mode}.json`; // 요구사항: color-blue-3182f6-subtle-light.json 등
       
       const a = document.createElement("a");
       a.href = url;

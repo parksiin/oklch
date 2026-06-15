@@ -133,10 +133,19 @@
     }
 
     .header {
-      text-align: center;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 1.5rem;
+      gap: 1.5rem;
+    }
+
+    .header-main-content {
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
+      text-align: left;
     }
 
     .header h1 {
@@ -153,6 +162,39 @@
       color: var(--text-secondary);
       font-size: 1.05rem;
       font-weight: 300;
+    }
+
+    .btn-nav-neutral {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+      padding: 0.6rem 1.2rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .btn-nav-neutral:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--accent-color);
+      box-shadow: 0 0 15px rgba(49, 130, 246, 0.2);
+    }
+
+    @media (max-width: 900px) {
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+      .header-main-content {
+        text-align: left;
+      }
     }
 
     /* ----------------------------------------------------
@@ -1275,8 +1317,14 @@
     
     <!-- 헤더 타이틀 -->
     <header class="header">
-      <h1>OKLCH 다차원 컬러 팔레트 제너레이터</h1>
-      <p>토스 컬러시스템 기반의 입체적 채도/색조 보정 및 정밀 양방향 바인딩 엔진</p>
+      <div class="header-main-content">
+        <h1>OKLCH 다차원 컬러 팔레트 제너레이터</h1>
+        <p>토스 컬러시스템 기반의 입체적 채도/색조 보정 및 정밀 양방향 바인딩 엔진</p>
+      </div>
+      <a href="neutral_generator.html" class="btn-nav-neutral">
+        무채색 제너레이터로 가기
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+      </a>
     </header>
 
     <!-- 토스 컬러 레퍼런스 프리셋 패널 -->
