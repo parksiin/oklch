@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OKLCH 무채색(Neutral) 팔레트 제너레이터</title>
+  
+  <!-- 구글 폰트: Outfit 및 JetBrains Mono (수치 가독성용) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- 정밀한 색상 공간 변환용 colorjs.io 라이브러리 CDN -->
+  <script src="https://unpkg.com/colorjs.io/dist/color.global.js"></script>
+
+  <style>
+    /* ----------------------------------------------------
+       1. 디자인 시스템 토큰 및 기본 스타일 정의
+    ---------------------------------------------------- */
+    :root {
+      --bg-dark: #07090e;
+      --bg-card: rgba(15, 23, 42, 0.45);
+      --border-card: rgba(255, 255, 255, 0.07);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      
+      --accent-color: #3182f6; /* 기본 주 색상 */
+      --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: radial-gradient(at 0% 0%, oklch(from var(--accent-color) 0.12 calc(c * 0.4) h) 0px, transparent 50%),
+                        radial-gradient(at 100% 100%, oklch(from var(--accent-color) 0.10 calc(c * 0.35) h + 75) 0px, transparent 50%);
+      background-attachment: fixed;
+      min-height: 100vh;
+      color: var(--text-primary);
+      font-family: var(--font-family);
+      padding: 3rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-x: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 28px;
+      padding: 3rem;
+      box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+
+    /* ----------------------------------------------------
+       2. 헤더 및 네비게이션 영역
+    ---------------------------------------------------- */
+    .header-area {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 1.5rem;
+    }
+
+    .header-title h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #ffffff 40%, oklch(from var(--accent-color) 0.8 0.08 h) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-title p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin-top: 0.4rem;
+      font-weight: 400;
+    }
+
+    .btn-nav-main {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+      padding: 0.6rem 1.2rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-nav-main:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--accent-color);
+      box-shadow: 0 0 15px rgba(49, 130, 246, 0.2);
+    }
+
+    /* ----------------------------------------------------
+       3. 상단 대시보드 제어판 (Dashboard)
+    ---------------------------------------------------- */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1.2fr 1.6fr;
+      gap: 2rem;
+      background: rgba(255, 255, 255, 0.015);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 20px;
+      padding: 1.75rem;
+    }
+
+    .control-box {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .control-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .status-badge {
+      font-size: 0.72rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    .status-badge.auto {
+      background: rgba(49, 130, 246, 0.15);
+      color: #64a8ff;
+      border: 1px solid rgba(49, 130, 246, 0.25);
+    }
+
+    .status-badge.manual {
+      background: rgba(250, 161, 49, 0.15);
+      color: #ffbd51;
+      border: 1px solid rgba(250, 161, 49, 0.25);
+    }
+
+    /* Primary HEX 인풋 */
+    .input-wrapper {
+      display: flex;
+      position: relative;
+      align-items: center;
+    }
+
+    .hash-symbol {
+      position: absolute;
+      left: 1rem;
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .input-hex-text {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 0.65rem 1rem 0.65rem 2.2rem;
+      font-family: var(--font-mono);
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .input-hex-text:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 12px rgba(49, 130, 246, 0.25);
+    }
+
+    .input-hex-text.error {
+      border-color: #f04452 !important;
+      box-shadow: 0 0 12px rgba(240, 68, 82, 0.25) !important;
+    }
+
+    /* 드롭다운 스타일 */
+    .select-dropdown {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 0.65rem 1rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+      background-size: 1.1rem;
+      transition: all 0.2s;
+    }
+
+    .select-dropdown:focus {
+      border-color: var(--accent-color);
+    }
+
+    /* 한계 명도 슬라이더 그룹 */
+    .limit-sliders-box {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      justify-content: center;
+    }
+
+    .limit-slider-row {
+      display: grid;
+      grid-template-columns: 55px 1fr 45px;
+      gap: 0.8rem;
+      align-items: center;
+    }
+
+    .limit-slider-row span {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .limit-slider-row input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+    }
+
+    .limit-slider-row input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid var(--accent-color);
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .limit-slider-row input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .limit-val-text {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #fff;
+      text-align: right;
+    }
+
+    /* ----------------------------------------------------
+       4. 무채색 팔레트 컬러칩 리스트 영역
+    ---------------------------------------------------- */
+    .palette-section {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .palette-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .palette-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .palette-title::before {
+      content: '';
+      display: block;
+      width: 5px;
+      height: 18px;
+      background: var(--accent-color);
+      border-radius: 3px;
+    }
+
+    .accessibility-info {
+      width: 100%;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-top: 0.2rem;
+    }
+
+    .palette-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    /* 리스트 헤더 */
+    .palette-list-header {
+      display: grid;
+      grid-template-columns: 60px 80px 140px 100px 140px 90px 1fr 180px;
+      align-items: center;
+      padding: 0.5rem 1.5rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* 개별 컬러칩 카드 */
+    .color-chip {
+      display: grid;
+      grid-template-columns: 60px 80px 140px 100px 140px 90px 1fr 180px;
+      align-items: center;
+      padding: 0.75rem 1.5rem;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-card);
+      border-radius: 16px;
+      transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.2s, box-shadow 0.2s;
+    }
+
+    .color-chip:hover {
+      transform: translateX(6px);
+      background: rgba(255, 255, 255, 0.045);
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.4);
+    }
+
+    .chip-swatch {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15), 0 4px 10px rgba(0, 0, 0, 0.25);
+    }
+
+    .chip-level {
+      font-size: 1.05rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+    }
+
+    .chip-var {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+
+    .chip-value {
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .chip-value.oklch-desc {
+      font-size: 0.82rem;
+      line-height: 1.3;
+    }
+
+    .chip-contrast {
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .contrast-badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .contrast-badge.pass-normal {
+      background: rgba(3, 178, 108, 0.15);
+      color: #15c47e;
+      border: 1px solid rgba(3, 178, 108, 0.25);
+    }
+
+    .contrast-badge.pass-large {
+      background: rgba(250, 161, 49, 0.15);
+      color: #ffa927;
+      border: 1px solid rgba(250, 161, 49, 0.25);
+    }
+
+    .contrast-badge.fail {
+      background: rgba(240, 68, 82, 0.15);
+      color: #fb6570;
+      border: 1px solid rgba(240, 68, 82, 0.25);
+    }
+
+    .chip-actions {
+      display: flex;
+      gap: 0.4rem;
+      justify-content: flex-end;
+    }
+
+    .btn-copy {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: inherit;
+      padding: 0.4rem 0.65rem;
+      border-radius: 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s;
+    }
+
+    .btn-copy:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-copy svg {
+      width: 12px;
+      height: 12px;
+      stroke-width: 2.5;
+    }
+
+    /* ----------------------------------------------------
+       5. 하단 코드 내보내기 & JSON 복사 패널
+    ---------------------------------------------------- */
+    .export-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-top: 1rem;
+    }
+
+    .export-card {
+      background: rgba(255, 255, 255, 0.015);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .export-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .export-title {
+      font-size: 1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--text-primary);
+    }
+
+    .export-title::before {
+      content: '';
+      display: block;
+      width: 4px;
+      height: 14px;
+      background: var(--accent-color);
+      border-radius: 2px;
+    }
+
+    .code-container {
+      background: rgba(10, 15, 30, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 1rem;
+      overflow-y: auto;
+      max-height: 250px;
+    }
+
+    .code-container pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .code-container code {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: #38bdf8;
+      line-height: 1.5;
+    }
+
+    .btn-export-action {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+    }
+
+    .btn-export-action:hover {
+      background: var(--accent-color);
+      border-color: var(--accent-color);
+      box-shadow: 0 4px 12px rgba(49, 130, 246, 0.25);
+    }
+
+    /* ----------------------------------------------------
+       6. 토스트 알림 메시지 시스템
+    ---------------------------------------------------- */
+    .toast-container {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--accent-color);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(49, 130, 246, 0.2);
+      color: #fff;
+      padding: 0.65rem 1.25rem;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      backdrop-filter: blur(8px);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast.hide {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+
+    .toast-icon {
+      color: var(--accent-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ----------------------------------------------------
+       7. 반응형 미디어 쿼리 (태블릿/모바일 대응)
+    ---------------------------------------------------- */
+    @media (max-width: 900px) {
+      body {
+        padding: 1.5rem 1rem;
+      }
+      .container {
+        padding: 1.5rem;
+        gap: 1.5rem;
+        border-radius: 20px;
+      }
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+        padding: 1.25rem;
+      }
+      .export-section {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+      }
+      .palette-list-header {
+        display: none;
+      }
+      .color-chip {
+        grid-template-columns: 56px 1fr 1fr;
+        grid-template-rows: auto auto auto auto;
+        row-gap: 0.6rem;
+        column-gap: 1rem;
+        padding: 1.25rem;
+      }
+      .chip-swatch {
+        grid-row: span 4;
+        width: 56px;
+        height: 56px;
+      }
+      .chip-level {
+        grid-column: 2;
+      }
+      .chip-var {
+        grid-column: 3;
+        justify-self: end;
+      }
+      .chip-value.hex-desc {
+        grid-column: 2 / span 2;
+      }
+      .chip-value.oklch-desc {
+        grid-column: 2 / span 2;
+      }
+      .chip-contrast {
+        grid-column: 2;
+        text-align: left;
+      }
+      .chip-badge-cell {
+        grid-column: 3;
+        justify-self: end;
+      }
+      .chip-actions {
+        grid-column: 2 / span 2;
+        justify-content: flex-start;
+        margin-top: 0.4rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- 헤더 영역 -->
+    <header class="header-area">
+      <div class="header-title">
+        <h1>Neutral Palette Generator</h1>
+        <p>OKLCH 공간 기반의 정밀 무채색(Slate/Cool/True/Warm) 스케일 제너레이터</p>
+      </div>
+      <a href="index.html" class="btn-nav-main">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        메인 제너레이터로 가기
+      </a>
+    </header>
+
+    <!-- 대시보드 제어 패널 -->
+    <section class="dashboard-grid">
+      
+      <!-- Primary 500 입력 -->
+      <div class="control-box">
+        <label class="control-label" for="primary-hex">
+          Primary Base Color
+        </label>
+        <div class="input-wrapper">
+          <span class="hash-symbol">#</span>
+          <input type="text" id="primary-hex" class="input-hex-text" maxlength="6" value="3182F6" placeholder="HEX 입력">
+        </div>
+      </div>
+
+      <!-- 무채색 톤 선택 -->
+      <div class="control-box">
+        <label class="control-label" for="neutral-tone">
+          Neutral Tone 
+          <span id="pairing-badge" class="status-badge auto">자동 페어링됨</span>
+        </label>
+        <select id="neutral-tone" class="select-dropdown">
+          <option value="slate">Slate (Hue 260°)</option>
+          <option value="cool">Cool Gray (Hue 220°)</option>
+          <option value="neutral">True Neutral (Chroma 0)</option>
+          <option value="warm">Warm Gray (Hue 45°)</option>
+        </select>
+      </div>
+
+      <!-- 명도 슬라이더 제어 -->
+      <div class="control-box limit-sliders-box">
+        <!-- Max Lightness -->
+        <div class="limit-slider-row">
+          <span>Max L</span>
+          <input type="range" id="slider-max-l" min="80" max="100" value="98">
+          <span id="text-max-l" class="limit-val-text">0.98</span>
+        </div>
+        <!-- Min Lightness -->
+        <div class="limit-slider-row">
+          <span>Min L</span>
+          <input type="range" id="slider-min-l" min="5" max="30" value="15">
+          <span id="text-min-l" class="limit-val-text">0.15</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 무채색 스케일 리스트 -->
+    <section class="palette-section">
+      <div class="palette-section-header">
+        <h2 class="palette-title">무채색 10단계 컬러 스케일</h2>
+      </div>
+      <p class="accessibility-info">
+        ℹ️ <strong>웹 접근성(WCAG 2.1) 자동 준수</strong>: 명암비 연산 기준은 소프트 블랙(#0F172A)을 비교군으로 엄격하게 판정하되, 제너레이터의 다크 테마 시인성을 위해 UI 글자색은 보정된 회색(#4B546C)으로 이원화 격리 적용되었습니다.
+      </p>
+
+      <div class="palette-list">
+        <!-- 리스트 컬럼 헤더 -->
+        <div class="palette-list-header">
+          <div>색상</div>
+          <div>단계</div>
+          <div>Token</div>
+          <div>HEX</div>
+          <div>OKLCH 실수값</div>
+          <div style="text-align: center;">명암비</div>
+          <div>WCAG 등급</div>
+          <div style="text-align: right;">액션</div>
+        </div>
+
+        <div id="neutral-palette-container">
+          <!-- 자바스크립트로 동적 컬러칩 생성 -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 내보내기 패널 -->
+    <section class="export-section">
+      <!-- CSS 변수 내보내기 -->
+      <div class="export-card">
+        <div class="export-header">
+          <h3 class="export-title">CSS Custom Properties</h3>
+          <button class="btn-export-action" onclick="copyCssVars()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            코드 복사
+          </button>
+        </div>
+        <div class="code-container">
+          <pre><code id="code-css-vars">/* 생성 중... */</code></pre>
+        </div>
+      </div>
+
+      <!-- JSON 내보내기 -->
+      <div class="export-card">
+        <div class="export-header">
+          <h3 class="export-title">JSON Data</h3>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn-export-action" onclick="copyJsonData()">
+              JSON 복사
+            </button>
+            <button class="btn-export-action" onclick="downloadJsonFile()">
+              일괄 다운로드 (.json)
+            </button>
+          </div>
+        </div>
+        <div class="code-container">
+          <pre><code id="code-json">/* 생성 중... */</code></pre>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- 토스트 알림 컨테이너 -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script>
+    // ----------------------------------------------------
+    // 1. 애플리케이션 상태(State) 정의
+    // ----------------------------------------------------
+    const state = {
+      primaryHex: '3182F6',   // 기본 주 색상
+      temperature: 'slate',   // 기본 톤
+      maxL: 0.98,             // 최대 명도
+      minL: 0.15,             // 최소 명도
+      isAutoPaired: true      // 자동 페어링 여부
+    };
+
+    // 10단계 스케일 규격 정의
+    const scaleSteps = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
+
+    // DOM 요소 캐싱
+    const inputHex = document.getElementById('primary-hex');
+    const selectTone = document.getElementById('neutral-tone');
+    const sliderMaxL = document.getElementById('slider-max-l');
+    const sliderMinL = document.getElementById('slider-min-l');
+    const textMaxL = document.getElementById('text-max-l');
+    const textMinL = document.getElementById('text-min-l');
+    const pairingBadge = document.getElementById('pairing-badge');
+    const paletteContainer = document.getElementById('neutral-palette-container');
+    const codeCss = document.getElementById('code-css-vars');
+    const codeJson = document.getElementById('code-json');
+
+    // ----------------------------------------------------
+    // 2. 수학 및 파싱 유틸리티 함수
+    // ----------------------------------------------------
+
+    // WCAG 상대 휘도 계산 함수
+    function getRelativeLuminance(r, g, b) {
+      const [sR, sG, sB] = [r / 255, g / 255, b / 255];
+      const R = sR <= 0.04045 ? sR / 12.92 : Math.pow((sR + 0.055) / 1.055, 2.4);
+      const G = sG <= 0.04045 ? sG / 12.92 : Math.pow((sG + 0.055) / 1.055, 2.4);
+      const B = sB <= 0.04045 ? sB / 12.92 : Math.pow((sB + 0.055) / 1.055, 2.4);
+      return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+    }
+
+    // HEX 코드를 RGB 파싱하는 간이 함수 (유효성 보장 상태 전제)
+    const defCleanHex = (hex) => {
+      let clean = hex.replace('#', '').trim();
+      if (clean.length === 3) {
+        clean = clean.split('').map(char => char + char).join('');
+      }
+      return clean;
+    };
+
+    function hexToRgb(hex) {
+      const clean = defCleanHex(hex);
+      const num = parseInt(clean, 16);
+      return {
+        r: (num >> 16) & 255,
+        g: (num >> 8) & 255,
+        b: num & 255
+      };
+    }
+
+    // ----------------------------------------------------
+    // 3. 지능형 오토 페어링 (Auto-pairing) 엔진
+    // ----------------------------------------------------
+    function runAutoPairing(hexVal) {
+      try {
+        const rgb = hexToRgb(hexVal);
+        // colorjs.io를 통해 sRGB에서 OKLCH 값 추출
+        const colorObj = new Color('srgb', [rgb.r / 255, rgb.g / 255, rgb.b / 255]);
+        const oklchCoords = colorObj.to('oklch').coords;
+        const h = isNaN(oklchCoords[2]) ? 0 : oklchCoords[2];
+
+        let targetTone = 'neutral';
+
+        // 명세서 조건에 따른 Hue 판별 분기
+        // Hue 0~90 또는 330~360 -> Warm Gray
+        // Hue 150~280 -> Slate
+        // 그 외 (90~150 또는 280~330) -> True Neutral
+        if ((h >= 0 && h <= 90) || (h >= 330 && h <= 360)) {
+          targetTone = 'warm';
+        } else if (h >= 150 && h <= 280) {
+          targetTone = 'slate';
+        } else {
+          targetTone = 'neutral';
+        }
+
+        // 상태 반영 및 UI 업데이트
+        state.temperature = targetTone;
+        selectTone.value = targetTone;
+        
+        state.isAutoPaired = true;
+        pairingBadge.className = 'status-badge auto';
+        pairingBadge.textContent = '자동 페어링됨';
+        
+        // CSS 주 컬러 실시간 변형
+        document.documentElement.style.setProperty('--accent-color', '#' + defCleanHex(hexVal));
+      } catch (e) {
+        console.error("Auto-pairing 연산 에러:", e);
+      }
+    }
+
+    // ----------------------------------------------------
+    // 4. 무채색 팔레트 연산 및 렌더링 파이프라인
+    // ----------------------------------------------------
+    function updateScale() {
+      // 1. 단계별 정보 보관용 어레이
+      const paletteData = [];
+
+      // UI 및 텍스트 갱신
+      textMaxL.textContent = state.maxL.toFixed(2);
+      textMinL.textContent = state.minL.toFixed(2);
+
+      // 2. 무채색 선형 및 Adaptive Chroma 매핑 시작
+      scaleSteps.forEach((level, i) => {
+        // 명도(L) 선형 보간: 50단계(maxL) ~ 900단계(minL)
+        // L(i) = Max_L - i * (Max_L - Min_L) / 9
+        const lVal = state.maxL - i * ((state.maxL - state.minL) / 9);
+
+        // 채도(C) 선형 감쇄: 50단계(0.012) ~ 900단계(0.003)
+        // C(i) = 0.012 - i * 0.001
+        let cVal = 0.012 - i * 0.001;
+
+        // 색상각(H) 온도 정의 설정
+        let hVal = 0;
+        if (state.temperature === 'slate') {
+          hVal = 260;
+        } else if (state.temperature === 'cool') {
+          hVal = 220;
+        } else if (state.temperature === 'warm') {
+          hVal = 45;
+        } else if (state.temperature === 'neutral') {
+          // True Neutral: Chroma = 0, Hue는 명시적으로 null/NaN 처리
+          cVal = 0;
+          hVal = NaN; 
+        }
+
+        // 3. Color.js 객체 생성
+        // 연산 파이프라인 진입 직전에는 Hue가 NaN일 경우 0으로 예외 처리하여 변환 붕괴 방지
+        const evalHue = isNaN(hVal) || hVal === null ? 0 : hVal;
+        const oklchColor = new Color('oklch', [lVal, cVal, evalHue]);
+        const srgbColor = oklchColor.to('srgb');
+
+        // RGB 정수형 변환
+        const r = Math.max(0, Math.min(255, Math.round(srgbColor.coords[0] * 255)));
+        const g = Math.max(0, Math.min(255, Math.round(srgbColor.coords[1] * 255)));
+        const b = Math.max(0, Math.min(255, Math.round(srgbColor.coords[2] * 255)));
+        
+        const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+        
+        // 4. 웹 접근성(WCAG 2.1) 대비 계산
+        // 대비 연산용 어두운 기준값은 완벽한 다크 슬레이트(#0f172a) 기준
+        const darkL = getRelativeLuminance(15, 23, 42); // #0f172a 상대 휘도
+        const whiteL = 1.0;                             // #ffffff 상대 휘도
+        const bgL = getRelativeLuminance(r, g, b);
+
+        const ratioWithWhite = (whiteL + 0.05) / (bgL + 0.05);
+        const ratioWithDark = bgL > darkL ? (bgL + 0.05) / (darkL + 0.05) : (darkL + 0.05) / (bgL + 0.05);
+
+        // 텍스트 색상 결정: 렌더링 시에는 가독성 보정용 회색(#4B546C)을 칠해 시인성 분리
+        const isDarkTextBetter = ratioWithDark >= ratioWithWhite;
+        const textRenderColor = isDarkTextBetter ? 'oklch(44.6% 0.043 257.281)' : '#ffffff';
+
+        // 최종 명암비 뱃지 계산
+        const finalRatio = isDarkTextBetter ? ratioWithDark : ratioWithWhite;
+        let gradeText = '';
+        let badgeClass = '';
+
+        if (finalRatio >= 4.5) {
+          gradeText = 'Pass(N)';
+          badgeClass = 'pass-normal';
+        } else if (finalRatio >= 3.0) {
+          gradeText = 'Pass(L)';
+          badgeClass = 'pass-large';
+        } else {
+          gradeText = 'Fail';
+          badgeClass = 'fail';
+        }
+
+        // 단계 데이터를 객체로 보관
+        paletteData.push({
+          level,
+          varName: `--neutral-${level}`,
+          hex,
+          oklchStr: `oklch(${lVal.toFixed(3)} ${cVal.toFixed(3)} ${isNaN(hVal) ? 'none' : hVal})`,
+          textRenderColor,
+          ratio: finalRatio.toFixed(2),
+          gradeText,
+          badgeClass,
+          coords: [
+            parseFloat(Math.max(0, Math.min(1, srgbColor.coords[0])).toFixed(3)),
+            parseFloat(Math.max(0, Math.min(1, srgbColor.coords[1])).toFixed(3)),
+            parseFloat(Math.max(0, Math.min(1, srgbColor.coords[2])).toFixed(3))
+          ]
+        });
+      });
+
+      // 5. DOM 빌드 및 렌더링
+      renderPaletteDOM(paletteData);
+
+      // 6. 코드 박스 데이터 갱신
+      updateExportData(paletteData);
+    }
+
+    // 실제 HTML 요소를 화면에 렌더링하는 함수
+    function renderPaletteDOM(data) {
+      paletteContainer.innerHTML = '';
+      
+      data.forEach(chip => {
+        const row = document.createElement('div');
+        row.className = 'color-chip';
+        row.id = `neutral-chip-${chip.level}`;
+        
+        // UI 글자색은 시인성이 확보된 색을 사용하되, 명암비 계산 등급은 올바르게 표시됨
+        row.style.color = chip.textRenderColor;
+
+        row.innerHTML = `
+          <div class="chip-swatch" style="background-color: ${chip.hex};"></div>
+          <div class="chip-level">${chip.level}</div>
+          <div><span class="chip-var">${chip.varName}</span></div>
+          <div class="chip-value hex-desc" id="neutral-hex-${chip.level}">${chip.hex}</div>
+          <div class="chip-value oklch-desc" id="neutral-oklch-${chip.level}">${chip.oklchStr}</div>
+          <div class="chip-contrast">${chip.ratio}:1</div>
+          <div class="chip-badge-cell">
+            <span class="contrast-badge ${chip.badgeClass}">${chip.gradeText}</span>
+          </div>
+          <div class="chip-actions">
+            <button class="btn-copy" onclick="copyScaleValue('${chip.level}', 'hex')" style="color: inherit;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              HEX
+            </button>
+            <button class="btn-copy" onclick="copyScaleValue('${chip.level}', 'oklch')" style="color: inherit;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              OKLCH
+            </button>
+          </div>
+        `;
+        paletteContainer.appendChild(row);
+      });
+    }
+
+    // 내보내기용 코드 및 JSON 데이터를 생성하는 함수
+    function updateExportData(data) {
+      // CSS 변수 텍스트 생성
+      let cssText = `:root {\n`;
+      data.forEach(chip => {
+        cssText += `  ${chip.varName}: ${chip.hex}; /* ${chip.oklchStr} */\n`;
+      });
+      cssText += `}`;
+      codeCss.textContent = cssText;
+
+      // JSON 데이터 생성 (W3C Design Tokens & Figma 표준 규격 만족)
+      const toneKey = "neutral" + state.temperature.charAt(0).toUpperCase() + state.temperature.slice(1);
+      const modeName = "Neutral-" + state.temperature.charAt(0).toUpperCase() + state.temperature.slice(1);
+      
+      const jsonStructure = {
+        [toneKey]: {},
+        "$extensions": {
+          "com.figma.modeName": modeName
+        }
+      };
+
+      data.forEach(chip => {
+        jsonStructure[toneKey][chip.level] = {
+          "$type": "color",
+          "$value": {
+            "colorSpace": "srgb",
+            "components": chip.coords,
+            "alpha": 1,
+            "hex": chip.hex
+          },
+          "$extensions": {
+            "com.figma.scopes": ["ALL_SCOPES"]
+          }
+        };
+      });
+      codeJson.textContent = JSON.stringify(jsonStructure, null, 2);
+    }
+
+    // ----------------------------------------------------
+    // 5. 이벤트 핸들러 및 바인딩
+    // ----------------------------------------------------
+
+    // Primary HEX 입력 컨트롤 감지
+    inputHex.addEventListener('input', () => {
+      let rawHex = inputHex.value.trim().replace('#', '');
+      
+      // 3자리 또는 6자리 HEX 검증 정규식
+      const hexRegex = /^([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
+      
+      if (hexRegex.test(rawHex)) {
+        inputHex.classList.remove('error');
+        state.primaryHex = rawHex;
+        
+        // 지능형 자동 매핑 엔진 실행
+        runAutoPairing(rawHex);
+        updateScale();
+      } else {
+        inputHex.classList.add('error');
+      }
+    });
+
+    // 드롭다운 변경 감지 (수동 오버라이드)
+    selectTone.addEventListener('change', () => {
+      state.temperature = selectTone.value;
+      state.isAutoPaired = false; // 수동 오버라이드 시 플래그 끔
+      
+      pairingBadge.className = 'status-badge manual';
+      pairingBadge.textContent = '수동 오버라이드됨';
+      
+      updateScale();
+    });
+
+    // Max L 슬라이더 감지
+    sliderMaxL.addEventListener('input', () => {
+      state.maxL = parseInt(sliderMaxL.value, 10) / 100;
+      updateScale();
+    });
+
+    // Min L 슬라이더 감지
+    sliderMinL.addEventListener('input', () => {
+      state.minL = parseInt(sliderMinL.value, 10) / 100;
+      updateScale();
+    });
+
+    // ----------------------------------------------------
+    // 6. 클립보드 복사 및 일괄 다운로드 함수
+    // ----------------------------------------------------
+
+    // 개별 칩 클립보드 복사
+    function copyScaleValue(level, format) {
+      let copyText = '';
+      if (format === 'hex') {
+        copyText = document.getElementById(`neutral-hex-${level}`).textContent;
+      } else {
+        copyText = document.getElementById(`neutral-oklch-${level}`).textContent;
+      }
+
+      navigator.clipboard.writeText(copyText).then(() => {
+        showToast(`클립보드 복사 완료: ${copyText}`);
+      }).catch(err => {
+        console.error('클립보드 복사 에러:', err);
+      });
+    }
+
+    // CSS 전체 코드 복사
+    function copyCssVars() {
+      const code = codeCss.textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        showToast("CSS Custom Properties가 복사되었습니다!");
+      });
+    }
+
+    // JSON 데이터 복사
+    function copyJsonData() {
+      const code = codeJson.textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        showToast("JSON 데이터가 클립보드에 복사되었습니다!");
+      });
+    }
+
+    // JSON 파일 일괄 다운로드
+    function downloadJsonFile() {
+      const code = codeJson.textContent;
+      const blob = new Blob([code], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `neutral_${state.temperature}_scale.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("JSON 파일 다운로드가 시작되었습니다.");
+    }
+
+    // 토스트 팝업 띄우기 함수
+    function showToast(message) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      
+      toast.innerHTML = `
+        <span class="toast-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </span>
+        <span>${message}</span>
+      `;
+      
+      container.appendChild(toast);
+      
+      requestAnimationFrame(() => {
+        toast.classList.add('show');
+      });
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+        toast.classList.add('hide');
+        toast.addEventListener('transitionend', () => {
+          toast.remove();
+        });
+      }, 2200);
+    }
+
+    // 초기 구동
+    function init() {
+      // 기본 Primary Toss Blue 기준 오토 페어링 및 연산 시작
+      runAutoPairing(state.primaryHex);
+      updateScale();
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
