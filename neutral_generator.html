@@ -119,12 +119,30 @@
     ---------------------------------------------------- */
     .dashboard-grid {
       display: grid;
-      grid-template-columns: 1.2fr 1.2fr 1.6fr;
-      gap: 2rem;
+      grid-template-columns: 1fr 1fr 1fr 1.3fr;
+      gap: 1.5rem;
       background: rgba(255, 255, 255, 0.015);
       border: 1px solid rgba(255, 255, 255, 0.04);
       border-radius: 20px;
-      padding: 1.75rem;
+      padding: 1.5rem;
+    }
+
+    .btn-mode {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0.45rem 1rem;
+      border-radius: 8px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-mode.active {
+      background: var(--accent-color);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(49, 130, 246, 0.3);
     }
 
     .control-box {
@@ -703,6 +721,15 @@
         </select>
       </div>
 
+      <!-- 화면 테마 모드 선택 (Light/Dark) -->
+      <div class="control-box">
+        <label class="control-label">Preview Theme Mode</label>
+        <div style="display: flex; gap: 0.4rem; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 0.2rem;">
+          <button type="button" id="btn-theme-light" class="btn-mode active" style="flex: 1;">Light</button>
+          <button type="button" id="btn-theme-dark" class="btn-mode" style="flex: 1;">Dark</button>
+        </div>
+      </div>
+
       <!-- 명도 슬라이더 제어 -->
       <div class="control-box limit-sliders-box">
         <!-- Max Lightness -->
@@ -768,18 +795,26 @@
       <!-- JSON 내보내기 -->
       <div class="export-card">
         <div class="export-header">
-          <h3 class="export-title">JSON Data</h3>
+          <h3 class="export-title">JSON Data (Figma Variables)</h3>
           <div style="display: flex; gap: 0.5rem;">
-            <button class="btn-export-action" onclick="copyJsonData()">
-              JSON 복사
+            <button class="btn-export-action" onclick="copyJsonData('light')">
+              Copy Light JSON
             </button>
-            <button class="btn-export-action" onclick="downloadJsonFile()">
-              일괄 다운로드 (.json)
+            <button class="btn-export-action" onclick="copyJsonData('dark')">
+              Copy Dark JSON
             </button>
           </div>
         </div>
         <div class="code-container">
           <pre><code id="code-json">/* 생성 중... */</code></pre>
+        </div>
+        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+          <button class="btn-export-action" onclick="downloadJsonFile('light')" style="font-size: 0.72rem;">
+            Download Light (.json)
+          </button>
+          <button class="btn-export-action" onclick="downloadJsonFile('dark')" style="font-size: 0.72rem;">
+            Download Dark (.json)
+          </button>
         </div>
       </div>
     </section>
@@ -798,7 +833,8 @@
       temperature: 'slate',   // 기본 톤
       maxL: 0.98,             // 최대 명도
       minL: 0.15,             // 최소 명도
-      isAutoPaired: true      // 자동 페어링 여부
+      isAutoPaired: true,     // 자동 페어링 여부
+      themeMode: 'light'      // 화면 테마 모드 ('light' 또는 'dark')
     };
 
     // 10단계 스케일 규격 정의
@@ -815,6 +851,8 @@
     const paletteContainer = document.getElementById('neutral-palette-container');
     const codeCss = document.getElementById('code-css-vars');
     const codeJson = document.getElementById('code-json');
+    const btnThemeLight = document.getElementById('btn-theme-light');
+    const btnThemeDark = document.getElementById('btn-theme-dark');
 
     // ----------------------------------------------------
     // 2. 수학 및 파싱 유틸리티 함수
@@ -892,24 +930,14 @@
     // 4. 무채색 팔레트 연산 및 렌더링 파이프라인
     // ----------------------------------------------------
     function updateScale() {
-      // 1. 단계별 정보 보관용 어레이
-      const paletteData = [];
-
       // UI 및 텍스트 갱신
       textMaxL.textContent = state.maxL.toFixed(2);
       textMinL.textContent = state.minL.toFixed(2);
 
-      // 2. 무채색 선형 및 Adaptive Chroma 매핑 시작
-      scaleSteps.forEach((level, i) => {
-        // 명도(L) 선형 보간: 50단계(maxL) ~ 900단계(minL)
-        // L(i) = Max_L - i * (Max_L - Min_L) / 9
+      // 1. 라이트 모드 기준의 L, C, H 10단계 기본 데이터 생성
+      const rawStepsData = scaleSteps.map((level, i) => {
         const lVal = state.maxL - i * ((state.maxL - state.minL) / 9);
-
-        // 채도(C) 선형 감쇄: 50단계(0.012) ~ 900단계(0.003)
-        // C(i) = 0.012 - i * 0.001
         let cVal = 0.012 - i * 0.001;
-
-        // 색상각(H) 온도 정의 설정
         let hVal = 0;
         if (state.temperature === 'slate') {
           hVal = 260;
@@ -918,18 +946,41 @@
         } else if (state.temperature === 'warm') {
           hVal = 45;
         } else if (state.temperature === 'neutral') {
-          // True Neutral: Chroma = 0, Hue는 명시적으로 null/NaN 처리
           cVal = 0;
-          hVal = NaN; 
+          hVal = NaN;
         }
+        return { level, lVal, cVal, hVal };
+      });
 
-        // 3. Color.js 객체 생성
+      // 2. 다크 모드(themeMode === 'dark') 일 때 배열을 완벽히 역순으로 뒤집기 (Symmetric Inversion)
+      // 라이트 모드의 50단계(가장 밝은)가 다크 모드 900단계로 매치되도록 
+      // 배열 내의 [lVal, cVal, hVal] 값 순서만 리버스하고 level(50~900) 키 매칭은 유지합니다.
+      let displayStepsData = rawStepsData;
+      if (state.themeMode === 'dark') {
+        const reversedL = rawStepsData.map(item => item.lVal).reverse();
+        const reversedC = rawStepsData.map(item => item.cVal).reverse();
+        const reversedH = rawStepsData.map(item => item.hVal).reverse();
+
+        displayStepsData = rawStepsData.map((item, idx) => ({
+          level: item.level,
+          lVal: reversedL[idx],
+          cVal: reversedC[idx],
+          hVal: reversedH[idx]
+        }));
+      }
+
+      const paletteData = [];
+
+      // 3. 무채색 루프 및 sRGB 변환
+      displayStepsData.forEach((stepItem) => {
+        const { level, lVal, cVal, hVal } = stepItem;
+
         // 연산 파이프라인 진입 직전에는 Hue가 NaN일 경우 0으로 예외 처리하여 변환 붕괴 방지
         const evalHue = isNaN(hVal) || hVal === null ? 0 : hVal;
         const oklchColor = new Color('oklch', [lVal, cVal, evalHue]);
         const srgbColor = oklchColor.to('srgb');
 
-        // RGB 정수형 변환
+        // RGB 정수형 변환 및 클리핑 안전장치
         const r = Math.max(0, Math.min(255, Math.round(srgbColor.coords[0] * 255)));
         const g = Math.max(0, Math.min(255, Math.round(srgbColor.coords[1] * 255)));
         const b = Math.max(0, Math.min(255, Math.round(srgbColor.coords[2] * 255)));
@@ -1027,6 +1078,83 @@
       });
     }
 
+    // 특정 테마 모드('light' 또는 'dark') 기준으로 전체 10단계 JSON 스케일 데이터를 생성하는 헬퍼 함수
+    function generateModeJson(mode) {
+      const rawStepsData = scaleSteps.map((level, i) => {
+        const lVal = state.maxL - i * ((state.maxL - state.minL) / 9);
+        let cVal = 0.012 - i * 0.001;
+        let hVal = 0;
+        if (state.temperature === 'slate') {
+          hVal = 260;
+        } else if (state.temperature === 'cool') {
+          hVal = 220;
+        } else if (state.temperature === 'warm') {
+          hVal = 45;
+        } else if (state.temperature === 'neutral') {
+          cVal = 0;
+          hVal = NaN;
+        }
+        return { level, lVal, cVal, hVal };
+      });
+
+      let displayStepsData = rawStepsData;
+      if (mode === 'dark') {
+        const reversedL = rawStepsData.map(item => item.lVal).reverse();
+        const reversedC = rawStepsData.map(item => item.cVal).reverse();
+        const reversedH = rawStepsData.map(item => item.hVal).reverse();
+
+        displayStepsData = rawStepsData.map((item, idx) => ({
+          level: item.level,
+          lVal: reversedL[idx],
+          cVal: reversedC[idx],
+          hVal: reversedH[idx]
+        }));
+      }
+
+      const toneKey = "neutral" + state.temperature.charAt(0).toUpperCase() + state.temperature.slice(1);
+      const figmaModeLabel = mode === 'light' ? 'Light' : 'Dark';
+      
+      const jsonStructure = {
+        [toneKey]: {},
+        "$extensions": {
+          "com.figma.modeName": figmaModeLabel
+        }
+      };
+
+      displayStepsData.forEach(stepItem => {
+        const { level, lVal, cVal, hVal } = stepItem;
+        const evalHue = isNaN(hVal) || hVal === null ? 0 : hVal;
+        const oklchColor = new Color('oklch', [lVal, cVal, evalHue]);
+        const srgbColor = oklchColor.to('srgb');
+
+        const r = Math.max(0, Math.min(255, Math.round(srgbColor.coords[0] * 255)));
+        const g = Math.max(0, Math.min(255, Math.round(srgbColor.coords[1] * 255)));
+        const b = Math.max(0, Math.min(255, Math.round(srgbColor.coords[2] * 255)));
+        const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+
+        const clippedCoords = [
+          parseFloat(Math.max(0, Math.min(1, srgbColor.coords[0])).toFixed(3)),
+          parseFloat(Math.max(0, Math.min(1, srgbColor.coords[1])).toFixed(3)),
+          parseFloat(Math.max(0, Math.min(1, srgbColor.coords[2])).toFixed(3))
+        ];
+
+        jsonStructure[toneKey][level] = {
+          "$type": "color",
+          "$value": {
+            "colorSpace": "srgb",
+            "components": clippedCoords,
+            "alpha": 1,
+            "hex": hex
+          },
+          "$extensions": {
+            "com.figma.scopes": ["ALL_SCOPES"]
+          }
+        };
+      });
+
+      return JSON.stringify(jsonStructure, null, 2);
+    }
+
     // 내보내기용 코드 및 JSON 데이터를 생성하는 함수
     function updateExportData(data) {
       // CSS 변수 텍스트 생성
@@ -1037,32 +1165,8 @@
       cssText += `}`;
       codeCss.textContent = cssText;
 
-      // JSON 데이터 생성 (W3C Design Tokens & Figma 표준 규격 만족)
-      const toneKey = "neutral" + state.temperature.charAt(0).toUpperCase() + state.temperature.slice(1);
-      const modeName = "Neutral-" + state.temperature.charAt(0).toUpperCase() + state.temperature.slice(1);
-      
-      const jsonStructure = {
-        [toneKey]: {},
-        "$extensions": {
-          "com.figma.modeName": modeName
-        }
-      };
-
-      data.forEach(chip => {
-        jsonStructure[toneKey][chip.level] = {
-          "$type": "color",
-          "$value": {
-            "colorSpace": "srgb",
-            "components": chip.coords,
-            "alpha": 1,
-            "hex": chip.hex
-          },
-          "$extensions": {
-            "com.figma.scopes": ["ALL_SCOPES"]
-          }
-        };
-      });
-      codeJson.textContent = JSON.stringify(jsonStructure, null, 2);
+      // 현재 화면 테마 모드에 상응하는 JSON 미리 표기
+      codeJson.textContent = generateModeJson(state.themeMode);
     }
 
     // ----------------------------------------------------
@@ -1111,6 +1215,25 @@
       updateScale();
     });
 
+    // 테마 토글 버튼 이벤트 감지
+    btnThemeLight.addEventListener('click', () => {
+      if (state.themeMode !== 'light') {
+        state.themeMode = 'light';
+        btnThemeLight.classList.add('active');
+        btnThemeDark.classList.remove('active');
+        updateScale();
+      }
+    });
+
+    btnThemeDark.addEventListener('click', () => {
+      if (state.themeMode !== 'dark') {
+        state.themeMode = 'dark';
+        btnThemeDark.classList.add('active');
+        btnThemeLight.classList.remove('active');
+        updateScale();
+      }
+    });
+
     // ----------------------------------------------------
     // 6. 클립보드 복사 및 일괄 다운로드 함수
     // ----------------------------------------------------
@@ -1139,27 +1262,27 @@
       });
     }
 
-    // JSON 데이터 복사
-    function copyJsonData() {
-      const code = codeJson.textContent;
+    // JSON 데이터 복사 (Light/Dark 모드 파라미터 분기)
+    function copyJsonData(mode) {
+      const code = generateModeJson(mode);
       navigator.clipboard.writeText(code).then(() => {
-        showToast("JSON 데이터가 클립보드에 복사되었습니다!");
+        showToast(`${mode === 'light' ? 'Light' : 'Dark'} JSON 데이터가 클립보드에 복사되었습니다!`);
       });
     }
 
-    // JSON 파일 일괄 다운로드
-    function downloadJsonFile() {
-      const code = codeJson.textContent;
+    // JSON 파일 일괄 다운로드 (Light/Dark 모드 파라미터 분기)
+    function downloadJsonFile(mode) {
+      const code = generateModeJson(mode);
       const blob = new Blob([code], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `neutral_${state.temperature}_scale.json`;
+      a.download = `neutral_${state.temperature}_${mode}_scale.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showToast("JSON 파일 다운로드가 시작되었습니다.");
+      showToast(`${mode === 'light' ? 'Light' : 'Dark'} JSON 파일 다운로드가 시작되었습니다.`);
     }
 
     // 토스트 팝업 띄우기 함수
