@@ -49,17 +49,28 @@
       --c-ratio-800: 0.75;
       --c-ratio-900: 0.60;
 
+      --l-val-50: 95.1%;
+      --l-val-100: 90.1%;
+      --l-val-200: 82.1%;
+      --l-val-300: 72.1%;
+      --l-val-400: 65.1%;
+      --l-val-500: 60.1%;
+      --l-val-600: 52.1%;
+      --l-val-700: 42.1%;
+      --l-val-800: 32.1%;
+      --l-val-900: 20.1%;
+
       /* [요구사항] 동적 채도 비율(--c-ratio-X)을 연동한 비선형 10단계 계산 */
-      --color-50: oklch(from var(--base-color) calc(l + 0.35) calc(c * var(--c-ratio-50)) calc(h + var(--h-shift-50)));
-      --color-100: oklch(from var(--base-color) calc(l + 0.30) calc(c * var(--c-ratio-100)) calc(h + var(--h-shift-100)));
-      --color-200: oklch(from var(--base-color) calc(l + 0.22) calc(c * var(--c-ratio-200)) calc(h + var(--h-shift-200)));
-      --color-300: oklch(from var(--base-color) calc(l + 0.12) calc(c * var(--c-ratio-300)) calc(h + var(--h-shift-300)));
-      --color-400: oklch(from var(--base-color) calc(l + 0.05) calc(c * var(--c-ratio-400)) calc(h + var(--h-shift-400)));
-      --color-500: var(--base-color);
-      --color-600: oklch(from var(--base-color) calc(l - 0.08) calc(c * var(--c-ratio-600)) calc(h + var(--h-shift-600)));
-      --color-700: oklch(from var(--base-color) calc(l - 0.18) calc(c * var(--c-ratio-700)) calc(h + var(--h-shift-700)));
-      --color-800: oklch(from var(--base-color) calc(l - 0.28) calc(c * var(--c-ratio-800)) calc(h + var(--h-shift-800)));
-      --color-900: oklch(from var(--base-color) calc(l - 0.40) calc(c * var(--c-ratio-900)) calc(h + var(--h-shift-900)));
+      --color-50: oklch(var(--l-val-50) calc(c * var(--c-ratio-50)) calc(h + var(--h-shift-50)));
+      --color-100: oklch(var(--l-val-100) calc(c * var(--c-ratio-100)) calc(h + var(--h-shift-100)));
+      --color-200: oklch(var(--l-val-200) calc(c * var(--c-ratio-200)) calc(h + var(--h-shift-200)));
+      --color-300: oklch(var(--l-val-300) calc(c * var(--c-ratio-300)) calc(h + var(--h-shift-300)));
+      --color-400: oklch(var(--l-val-400) calc(c * var(--c-ratio-400)) calc(h + var(--h-shift-400)));
+      --color-500: oklch(var(--l-val-500) c h);
+      --color-600: oklch(var(--l-val-600) calc(c * var(--c-ratio-600)) calc(h + var(--h-shift-600)));
+      --color-700: oklch(var(--l-val-700) calc(c * var(--c-ratio-700)) calc(h + var(--h-shift-700)));
+      --color-800: oklch(var(--l-val-800) calc(c * var(--c-ratio-800)) calc(h + var(--h-shift-800)));
+      --color-900: oklch(var(--l-val-900) calc(c * var(--c-ratio-900)) calc(h + var(--h-shift-900)));
 
       /* 테마 레이아웃용 컬러 토큰 */
       --bg-dark: #07090e;
@@ -1851,8 +1862,11 @@
         shiftNum.value = 0;
       }
 
-      // B. 단계별 비선형 Hue Shift 각도 가중치를 CSS 속성에 주입
+      // B. 단계별 비선형 Hue Shift 각도 가중치를 CSS 속성에 주입하고,
+      // 하이브리드 명도 가변 스케일링(대안 C) 연산을 적용하여 CSS 명도 변수에 주입
+      const baseL = state.l;
       activeConfigs.forEach(cfg => {
+        // Hue Shift 연산
         let stepShift = 0;
         if (cfg.level === 500) {
           stepShift = 0;
@@ -1866,6 +1880,17 @@
           stepShift = targetMaxShift * factor;
         }
         root.style.setProperty(`--h-shift-${cfg.level}`, stepShift.toFixed(2));
+
+        // [대안 C] 하이브리드 명도 가변 스케일링 연산
+        let targetL = baseL;
+        if (cfg.level < 500) {
+          // 밝은 영역: 500단계(baseL)부터 50단계(Max L: 98%)까지 비선형 배분
+          targetL = baseL + (98 - baseL) * (cfg.lOffset / 0.35);
+        } else if (cfg.level > 500) {
+          // 어두운 영역: 500단계(baseL)부터 900단계(Min L: 15%)까지 비선형 배분
+          targetL = baseL - (baseL - 15) * (Math.abs(cfg.lOffset) / 0.40);
+        }
+        root.style.setProperty(`--l-val-${cfg.level}`, targetL.toFixed(2) + '%');
       });
 
       // C. L, C, H 개별 변수 갱신 (슬라이더 배경 그라데이션 동적 렌더링용)
@@ -1964,9 +1989,15 @@
           badgeCellEl.innerHTML = `<span class="contrast-badge ${badgeClass}">${gradeText}</span>`;
         }
 
-        // 해당 단계의 최종 OKLCH 실질 명시 수치 계산
-        const rawLevelL = (state.l / 100) + cfg.lOffset;
-        const clampedLevelL = Math.max(0, Math.min(100, Math.round(rawLevelL * 100)));
+        // 해당 단계의 최종 OKLCH 실질 명시 수치 계산 (대안 C 하이브리드 명도 가변 스케일링)
+        const baseL = state.l;
+        let targetL = baseL;
+        if (cfg.level < 500) {
+          targetL = baseL + (98 - baseL) * (cfg.lOffset / 0.35);
+        } else if (cfg.level > 500) {
+          targetL = baseL - (baseL - 15) * (Math.abs(cfg.lOffset) / 0.40);
+        }
+        const clampedLevelL = Math.max(0, Math.min(100, Math.round(targetL)));
         const finalC = state.c * cfg.cRatio;
 
         // 색상 이동 가중치 적용
@@ -2243,30 +2274,71 @@
     function buildFigmaJSONSchema() {
       const rawGroupName = getColorGroupName(state.h);
       const groupName = "adaptive" + rawGroupName;
-      
       const groupObject = {};
       const activeConfigs = getActiveConfigs();
       
-      activeConfigs.forEach(cfg => {
-        const chipEl = document.getElementById(`chip-${cfg.level}`);
-        const swatchEl = chipEl.querySelector('.chip-swatch');
-        
-        // 브라우저 렌더링 엔진이 최종 연산한 색상 확보
-        const computedColor = window.getComputedStyle(swatchEl).backgroundColor;
-        const colorInfo = parseColor(computedColor);
-        
-        // R, G, B 각각 255로 나눈 0~1 사이의 소수점 형태 실수 계산
-        const rNorm = parseFloat((colorInfo.r / 255).toFixed(3));
-        const gNorm = parseFloat((colorInfo.g / 255).toFixed(3));
-        const bNorm = parseFloat((colorInfo.b / 255).toFixed(3));
+      let targetMaxShift = 0;
+      if (state.shiftMode === 'auto') {
+        targetMaxShift = calculateAutoHueShift(state.h);
+      } else if (state.shiftMode === 'manual') {
+        targetMaxShift = state.shiftManualVal;
+      }
 
+      activeConfigs.forEach(cfg => {
+        // A. 명도 L 연산 및 범위 클램프 (대안 C 하이브리드 명도 가변 스케일링)
+        const baseL = state.l;
+        let targetL = baseL;
+        if (cfg.level < 500) {
+          targetL = baseL + (98 - baseL) * (cfg.lOffset / 0.35);
+        } else if (cfg.level > 500) {
+          targetL = baseL - (baseL - 15) * (Math.abs(cfg.lOffset) / 0.40);
+        }
+        targetL = Math.max(0, Math.min(100, targetL));
+
+        // B. 채도 C 연산 및 범위 클램프
+        let targetC = state.c * cfg.cRatio;
+        targetC = Math.max(0, targetC);
+
+        // C. 색상 H 연산 (지능형 Hue Shift 적용)
+        let stepShift = 0;
+        if (cfg.level !== 500) {
+          const factor = cfg.level < 500 ? (500 - cfg.level) / 450 : (cfg.level - 500) / 400;
+          stepShift = cfg.level < 500 ? targetMaxShift * -0.45 * factor : targetMaxShift * factor;
+        }
+
+        const rawHue = (state.h + stepShift) % 360;
+        const normalizedHue = rawHue < 0 ? rawHue + 360 : rawHue;
+
+        let diff = 250 - normalizedHue;
+        if (diff > 180) diff -= 360;
+        if (diff < -180) diff += 360;
+
+        let finalH = normalizedHue + diff * 0.05;
+        if (finalH < 0) finalH += 360;
+        if (finalH >= 360) finalH -= 360;
+
+        // D. Color.js 공간 변환 및 sRGB 클리핑 핫픽스 적용
+        const oklchColor = new Color('oklch', [targetL / 100, targetC, finalH]);
+        const srgbCoords = oklchColor.to('srgb').coords;
+
+        const rNorm = Math.max(0, Math.min(1, srgbCoords[0]));
+        const gNorm = Math.max(0, Math.min(1, srgbCoords[1]));
+        const bNorm = Math.max(0, Math.min(1, srgbCoords[2]));
+
+        // E. W3C/Figma DTCG 규격 객체 완성 (hex 속성은 규격에 따라 제거)
         groupObject[cfg.level] = {
           "$type": "color",
           "$value": {
             "colorSpace": "srgb",
-            "components": [rNorm, gNorm, bNorm],
-            "alpha": 1,
-            "hex": colorInfo.hex
+            "components": [
+              parseFloat(rNorm.toFixed(3)),
+              parseFloat(gNorm.toFixed(3)),
+              parseFloat(bNorm.toFixed(3))
+            ],
+            "alpha": 1
+          },
+          "$extensions": {
+            "com.figma.scopes": ["ALL_SCOPES"]
           }
         };
       });
@@ -2314,9 +2386,29 @@
       // Blob 및 URL.createObjectURL을 이용한 클라이언트 사이드 즉시 다운로드 구현
       const blob = new Blob([jsonString], { type: "application/json" });
       const url = URL.createObjectURL(blob);
-      // 500단계의 HEX 추출 (예: #3182F6 -> 3182f6)
-      const groupName = "adaptive" + rawGroupName;
-      const hex500 = figmaData[groupName]["500"].$value.hex.replace('#', '').toLowerCase();
+      
+      // 파일명 구성을 위해 500단계의 임시 HEX 계산 (colorjs.io 사용)
+      let hex500 = "ffffff";
+      try {
+        let configs = getActiveConfigs();
+        let cfg500 = configs.find(c => c.level === 500);
+        let targetL = state.l; // cfg500.level === 500 이므로 대안 C에 의해 targetL = state.l
+        let targetC = state.c * cfg500.cRatio;
+        
+        let stepShift = 0; // 500단계는 stepShift = 0
+        let rawHue = state.h;
+        let diff = 250 - rawHue;
+        if (diff > 180) diff -= 360;
+        if (diff < -180) diff += 360;
+        let finalH = rawHue + diff * 0.05;
+        if (finalH < 0) finalH += 360;
+        if (finalH >= 360) finalH -= 360;
+        
+        let col = new Color('oklch', [targetL / 100, targetC, finalH]);
+        hex500 = col.to('srgb').toString({ format: 'hex' }).replace('#', '').toLowerCase();
+      } catch (e) {
+        console.error("HEX 500 계산 에러:", e);
+      }
       
       const fileName = `color-${rawGroupName.toLowerCase()}-${hex500}-${state.chromaEasingMode}.json`; // 요구사항: color-blue-3182f6-subtle.json 등
       
