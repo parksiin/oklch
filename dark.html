@@ -2354,7 +2354,8 @@
         const gNorm = Math.max(0, Math.min(1, srgbCoords[1]));
         const bNorm = Math.max(0, Math.min(1, srgbCoords[2]));
 
-        // E. W3C/Figma DTCG 규격 객체 완성 (hex 속성은 규격에 따라 제거)
+        // E. W3C/Figma DTCG 규격 객체 완성 (사용자 요청: hex 속성 포함하도록 롤백)
+        const hexStr = oklchColor.to('srgb').toString({ format: 'hex' });
         groupObject[cfg.level] = {
           "$type": "color",
           "$value": {
@@ -2364,7 +2365,8 @@
               parseFloat(gNorm.toFixed(3)),
               parseFloat(bNorm.toFixed(3))
             ],
-            "alpha": 1
+            "alpha": 1,
+            "hex": hexStr
           },
           "$extensions": {
             "com.figma.scopes": ["ALL_SCOPES"]
