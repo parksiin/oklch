@@ -1963,6 +1963,8 @@
         targetMaxShift = state.shiftManualVal;
         shiftingControls.classList.remove('disabled');
         shiftingStatus.innerHTML = `수동 보정 활성화: 최대 <strong>${targetMaxShift}°</strong> 꺾임 각도를 직접 제어합니다.`;
+        shiftSlider.value = targetMaxShift;
+        shiftNum.value = targetMaxShift;
       } else {
         targetMaxShift = 0;
         shiftingControls.classList.add('disabled');
