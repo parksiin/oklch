@@ -1864,16 +1864,6 @@
       // 3. Dark 모드 팔레트 계산
       const darkConfigs = getActiveConfigs();
       darkConfigs.forEach(cfg => {
-        // 400단계 (Base Color) 절대 보존: 소수점 오차 방지
-        if (cfg.level === 400) {
-          let rawInput = state.baseHex;
-          if (!rawInput.startsWith('#')) {
-            rawInput = '#' + rawInput;
-          }
-          state.darkPalette[cfg.level] = parseColor(rawInput).hex;
-          return;
-        }
-
         const baseL = state.l;
         let targetL = cfg.level < 400 ? baseL - (baseL - 15) * (Math.abs(cfg.lOffset) / 0.40) : baseL + (98 - baseL) * (cfg.lOffset / 0.35);
         targetL = Math.max(0, Math.min(100, targetL));
@@ -2010,9 +2000,9 @@
 
       // F. 프리뷰 스와치 및 텍스트 갱신
       const swatchElement = document.querySelector('.preview-swatch');
-      const baseHex = state.darkPalette[400];
-      swatchElement.style.backgroundColor = baseHex;
-      previewHex.textContent = baseHex;
+      const previewHexVal = state.baseHex.startsWith('#') ? state.baseHex : '#' + state.baseHex;
+      swatchElement.style.backgroundColor = previewHexVal;
+      previewHex.textContent = previewHexVal.toUpperCase();
       previewOklch.textContent = `oklch(${state.l.toFixed(1)}% ${state.c.toFixed(3)} ${Math.round(state.h)})`;
 
       // G. 10단계 컬러칩 실제 렌더링 및 동기화 주입
@@ -2102,7 +2092,7 @@
       });
 
       // URL 및 LocalStorage 상태 동기화 트리거
-      persistBaseColorState(baseHex);
+      persistBaseColorState(state.baseHex);
 
       // 리셋
       state.lastUpdatedSource = null;
@@ -2218,7 +2208,7 @@
         showToast(`${brandName} 프리셋 적용 완료: ${hexCode}`);
  
         // 모드 버튼 UI 업데이트
-        const buttons = document.querySelectorAll('.shifting-modes .btn-mode');
+        const buttons = document.querySelectorAll('#hue-shifting-modes .btn-mode');
         buttons.forEach(btn => btn.classList.remove('active'));
         buttons[0].classList.add('active'); // auto
  
@@ -2462,18 +2452,20 @@
     // URL 및 LocalStorage에 현재 HEX 상태를 실시간 저장하고 GNB 링크 갱신
     function persistBaseColorState(hex) {
       const cleanHex = hex.replace('#', '').toUpperCase();
+      const easingMode = state.chromaEasingMode || 'standard';
       
-      // 1. URL 쿼리 실시간 동기화
-      window.history.replaceState(null, '', `?hex=${cleanHex}`);
+      // 1. URL 쿼리 실시간 동기화 (easing 상태 보존 추가)
+      window.history.replaceState(null, '', `?hex=${cleanHex}&easing=${easingMode}`);
       
       // 2. LocalStorage 백업
       localStorage.setItem('baseHex', cleanHex);
+      localStorage.setItem('chromaEasingMode', easingMode);
       
-      // 3. GNB 탭 링크 동적 갱신 (쿼리 파라미터 바인딩)
+      // 3. GNB 탭 링크 동적 갱신 (쿼리 파라미터 바인딩 및 easing 상태 보존)
       const lightTab = document.querySelector('.gnb-tab-bar a[href*="index.html"]');
       const darkTab = document.querySelector('.gnb-tab-bar a[href*="dark.html"]');
-      if (lightTab) lightTab.href = `index.html?hex=${cleanHex}`;
-      if (darkTab) darkTab.href = `dark.html?hex=${cleanHex}`;
+      if (lightTab) lightTab.href = `index.html?hex=${cleanHex}&easing=${easingMode}`;
+      if (darkTab) darkTab.href = `dark.html?hex=${cleanHex}&easing=${easingMode}`;
     }
 
     // 8. 초기 부팅
@@ -2500,6 +2492,16 @@
       if (targetHex.length === 3) {
         targetHex = targetHex.split('').map(char => char + char).join('');
       }
+
+      // Chroma Easing 모드 복구 및 UI 연동
+      const urlEasing = urlParams.get('easing');
+      const savedEasing = localStorage.getItem('chromaEasingMode');
+      if (urlEasing === 'standard' || urlEasing === 'subtle') {
+        state.chromaEasingMode = urlEasing;
+      } else if (savedEasing === 'standard' || savedEasing === 'subtle') {
+        state.chromaEasingMode = savedEasing;
+      }
+      setChromaEasingMode(state.chromaEasingMode);
       
       // 해당 색상으로 강제 주입 로드하여 부팅
       loadPresetColor('#' + targetHex, 'Init');
