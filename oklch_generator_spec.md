@@ -105,3 +105,13 @@
 
 ### 3) [핫픽스] CSS Relative Color Syntax 파싱 실패 결함 해결
 * **변경 사유**: 명도 변수 도입 시 CSS의 `oklch()` 색상 함수 내에 기준색 분해 구문인 `from var(--base-color)`가 누락되어 브라우저가 색상 파싱에 실패하고 검은색(`#000000`)으로 렌더링되던 심각한 렌더링 결함을 해결하기 위해 `from var(--base-color)` 구문을 전면 복구했습니다.
+
+### 4) [아키텍처 개편] Double Calculation 제거 및 JS 단일 원천(SSOT) 아키텍처 구축
+* **변경 사유 (결함)**: 브라우저의 CSS oklch 렌더링 파이프라인(Gamut 클리핑, 감마 보정 등)과 자바스크립트 `Color.js` 연산 결과 간의 미세한 파싱 변환 차이로 인해, UI 화면에 표시되는 HEX 값과 Figma 임포트용 JSON 데이터 내부의 HEX 값 사이에 1단위 미세 오차가 발생하는 현상(Double Calculation 결함)이 발견되었습니다.
+* **해결 사양**:
+  * **JS 단일 원천화(SSOT)**: 렌더링 시 브라우저 엔진에 변환을 위임하지 않고, JS 메모리 단에서 `Color.js` 및 Canvas 2D를 사용해 Light/Dark 각각의 10단계 HEX를 선 계산하여 전역 상태(`state.lightPalette`, `state.darkPalette`)에 먼저 적재하도록 구조를 개편했습니다.
+  * **직접 인라인 주입**: UI 렌더링 함수(`syncAndRender`)에서 이 선 계산된 HEX 값을 각 컬러칩 스와치에 직접 인라인 배경색(`style.backgroundColor`)으로 주입하여 화면상의 HEX 값과 연산 결과를 100% 일치시켰습니다.
+  * **Components 역산 및 5자리 정밀도 상향**: Figma JSON을 빌드할 때도 사전 적재된 HEX 값을 기준으로 components sRGB 비율을 역산하여 내보냅니다. 이때 피그마 렌더링 엔진의 소수점 반올림 오차 재발 방지를 위해 components 정밀도를 기존 3자리(`.toFixed(3)`)에서 5자리(`.toFixed(5)`)로 상향 적용하여 DTCG 규격의 안전성을 보장하였습니다.
+  * **앵커 레벨 절대 보존**: Base Color에 해당하는 라이트 500단계, 다크 400단계에 대해서는 사용자가 입력한 HEX 원본을 연산 없이 그대로 보존(Bypass)하여 부동 소수점 오차가 발생하지 않도록 강제했습니다.
+* **적용 파일**: `index.html`, `light.html`, `dark.html` 3종 전체의 UI 및 JSON 데이터 파이프라인 동기화.
+

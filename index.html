@@ -1720,7 +1720,10 @@
       shiftManualVal: 0, // 수동 꺾임각 최대 크기 (-45 ~ +45)
       chromaEasingMode: 'standard', // 채도 감쇄 모드 ('standard' 또는 'subtle')
       contrastBg: 'FFFFFF', // 대비 검사용 배경색 HEX
-      lastUpdatedSource: null // 이벤트 폭주 및 루프 백 방지 장치
+      lastUpdatedSource: null, // 이벤트 폭주 및 루프 백 방지 장치
+      baseHex: '3182F6', // [SSOT] 현재 Base Color의 무결한 HEX 상태값 (DOM 의존성 제거)
+      lightPalette: {}, // [SSOT] 라이트 모드 10단계 최종 HEX 적재 객체
+      darkPalette: {}   // [SSOT] 다크 모드 10단계 최종 HEX 적재 객체
     };
 
     // DOM 캐싱
@@ -1824,6 +1827,101 @@
       return { hex, r, g, b };
     }
 
+    // [SSOT] 라이트 및 다크 팔레트 선 연산 함수 (오차 없는 단일 원천)
+    function calculatePalettes() {
+      // 1. 공통 Hue Shift 각도 설정 및 연산
+      let targetMaxShift = 0;
+      if (state.shiftMode === 'auto') {
+        targetMaxShift = calculateAutoHueShift(state.h);
+      } else if (state.shiftMode === 'manual') {
+        targetMaxShift = state.shiftManualVal;
+      }
+
+      // 2. Light 모드 팔레트 계산
+      const lightConfigs = getActiveConfigs();
+      lightConfigs.forEach(cfg => {
+        // 500단계 (Base Color) 절대 보존: 소수점 오차 방지
+        if (cfg.level === 500) {
+          let rawInput = state.baseHex;
+          if (!rawInput.startsWith('#')) {
+            rawInput = '#' + rawInput;
+          }
+          state.lightPalette[cfg.level] = parseColor(rawInput).hex;
+          return;
+        }
+
+        const baseL = state.l;
+        let targetL = baseL;
+        if (cfg.level < 500) {
+          targetL = baseL + (98 - baseL) * (cfg.lOffset / 0.35);
+        } else {
+          targetL = baseL - (baseL - 15) * (Math.abs(cfg.lOffset) / 0.40);
+        }
+        targetL = Math.max(0, Math.min(100, targetL));
+
+        let targetC = state.c * cfg.cRatio;
+        targetC = Math.max(0, targetC);
+
+        const factor = cfg.level < 500 ? (500 - cfg.level) / 450 : (cfg.level - 500) / 400;
+        const stepShift = cfg.level < 500 ? targetMaxShift * -0.45 * factor : targetMaxShift * factor;
+        const rawHue = (state.h + stepShift) % 360;
+        const normalizedHue = rawHue < 0 ? rawHue + 360 : rawHue;
+
+        let diff = 250 - normalizedHue;
+        if (diff > 180) diff -= 360;
+        if (diff < -180) diff += 360;
+
+        let finalH = normalizedHue + diff * 0.05;
+        if (finalH < 0) finalH += 360;
+        if (finalH >= 360) finalH -= 360;
+
+        const oklchColor = new Color('oklch', [targetL / 100, targetC, finalH]);
+        state.lightPalette[cfg.level] = oklchColor.to('srgb').toString({ format: 'hex' }).toUpperCase();
+      });
+
+      // 3. Dark 모드 팔레트 계산
+      const darkConfigs = state.chromaEasingMode === 'standard' ? darkStandardConfigs : darkSubtleConfigs;
+      darkConfigs.forEach(cfg => {
+        // 400단계 (Base Color) 절대 보존: 소수점 오차 방지
+        if (cfg.level === 400) {
+          let rawInput = state.baseHex;
+          if (!rawInput.startsWith('#')) {
+            rawInput = '#' + rawInput;
+          }
+          state.darkPalette[cfg.level] = parseColor(rawInput).hex;
+          return;
+        }
+
+        const baseL = state.l;
+        let targetL = baseL;
+        if (cfg.level < 400) {
+          targetL = baseL - (baseL - 15) * (Math.abs(cfg.lOffset) / 0.40);
+        } else {
+          targetL = baseL + (98 - baseL) * (cfg.lOffset / 0.35);
+        }
+        targetL = Math.max(0, Math.min(100, targetL));
+
+        let targetC = state.c * cfg.cRatio * 0.75;
+        targetC = Math.max(0, targetC);
+
+        const factor = cfg.level < 400 ? (400 - cfg.level) / 350 : (cfg.level - 400) / 500;
+        const stepShift = cfg.level < 400 ? targetMaxShift * -0.45 * factor : targetMaxShift * factor;
+        const rawHue = (state.h + stepShift) % 360;
+        const normalizedHue = rawHue < 0 ? rawHue + 360 : rawHue;
+
+        let diff = 250 - normalizedHue;
+        if (diff > 180) diff -= 360;
+        if (diff < -180) diff += 360;
+
+        let finalH = normalizedHue + diff * 0.05;
+        if (finalH < 0) finalH += 360;
+        if (finalH >= 360) finalH -= 360;
+
+        const oklchColor = new Color('oklch', [targetL / 100, targetC, finalH]);
+        state.darkPalette[cfg.level] = oklchColor.to('srgb').toString({ format: 'hex' }).toUpperCase();
+      });
+    }
+
     // WCAG 표준 선형 상대 휘도(Relative Luminance) 변환 함수
     function getRelativeLuminance(r, g, b) {
       const [sR, sG, sB] = [r / 255, g / 255, b / 255];
@@ -1860,6 +1958,23 @@
 
     // 4. [양방향 동기화 핵심] UI 동기화 및 렌더링 파이프라인
     function syncAndRender() {
+      // [SSOT] calculatePalettes 실행 전에 baseHex 상태 및 inputHex.value를 최신화하여 Bypass 동기화 확보
+      if (state.lastUpdatedSource !== 'hex') {
+        try {
+          let baseCol = new Color('oklch', [state.l / 100, state.c, state.h]);
+          let calculatedHex = baseCol.to('srgb').toString({ format: 'hex' }).toUpperCase();
+          state.baseHex = calculatedHex.replace('#', '');
+          inputHex.value = state.baseHex;
+          inputHex.classList.remove('error');
+          hexError.style.display = 'none';
+        } catch (e) {
+          console.error("Hex 변환 에러:", e);
+        }
+      }
+
+      // [SSOT] 사전 팔레트 연산 수행
+      calculatePalettes();
+
       const root = document.documentElement;
       const activeConfigs = getActiveConfigs();
 
@@ -1875,15 +1990,12 @@
         root.style.setProperty(`--c-ratio-${cfg.level}`, cfg.cRatio.toFixed(2));
       });
 
-      // A. 지능형 Hue Shift 각도 설정 및 연산
+      // A. 지능형 Hue Shift 각도 설정 및 연산 (수동 UI 정보 표기용)
       let targetMaxShift = 0;
-      
       if (state.shiftMode === 'auto') {
         targetMaxShift = calculateAutoHueShift(state.h);
         shiftingControls.classList.add('disabled');
         shiftingStatus.innerHTML = `자동 보정 켜짐: 현재 색조 감지 결과 최대 <strong>${targetMaxShift}°</strong> 꺾임이 적용됩니다.`;
-        
-        // 자동 계산 값을 수동 입력 요소에도 동기화 표기
         shiftSlider.value = targetMaxShift;
         shiftNum.value = targetMaxShift;
       } else if (state.shiftMode === 'manual') {
@@ -1894,40 +2006,14 @@
         targetMaxShift = 0;
         shiftingControls.classList.add('disabled');
         shiftingStatus.innerHTML = `색상 이동 보정이 꺼져 있습니다 (0° 고정).`;
-        
         shiftSlider.value = 0;
         shiftNum.value = 0;
       }
 
-      // B. 단계별 비선형 Hue Shift 각도 가중치를 CSS 속성에 주입하고,
-      // 하이브리드 명도 가변 스케일링(대안 C) 연산을 적용하여 CSS 명도 변수에 주입
-      const baseL = state.l;
+      // B. 단계별 계산된 HEX 값을 :root CSS 변수에 실시간 주입 (하위 호환 레이아웃용)
       activeConfigs.forEach(cfg => {
-        // Hue Shift 연산
-        let stepShift = 0;
-        if (cfg.level === 500) {
-          stepShift = 0;
-        } else if (cfg.level < 500) {
-          // 밝은 영역: 500에서 50으로 멀어질수록 역방향 시프트 (더 맑고 차가운 레몬빛화 등)
-          const factor = (500 - cfg.level) / 450; // 0.1 ~ 1.0
-          stepShift = targetMaxShift * -0.45 * factor;
-        } else {
-          // 어두운 영역: 500에서 900으로 멀어질수록 정방향 점진 시프트
-          const factor = (cfg.level - 500) / 400; // 0.2 ~ 1.0
-          stepShift = targetMaxShift * factor;
-        }
-        root.style.setProperty(`--h-shift-${cfg.level}`, stepShift.toFixed(2));
-
-        // [대안 C] 하이브리드 명도 가변 스케일링 연산
-        let targetL = baseL;
-        if (cfg.level < 500) {
-          // 밝은 영역: 500단계(baseL)부터 50단계(Max L: 98%)까지 비선형 배분
-          targetL = baseL + (98 - baseL) * (cfg.lOffset / 0.35);
-        } else if (cfg.level > 500) {
-          // 어두운 영역: 500단계(baseL)부터 900단계(Min L: 15%)까지 비선형 배분
-          targetL = baseL - (baseL - 15) * (Math.abs(cfg.lOffset) / 0.40);
-        }
-        root.style.setProperty(`--l-val-${cfg.level}`, targetL.toFixed(2) + '%');
+        const finalHex = state.lightPalette[cfg.level];
+        root.style.setProperty(`--color-${cfg.level}`, finalHex);
       });
 
       // C. L, C, H 개별 변수 갱신 (슬라이더 배경 그라데이션 동적 렌더링용)
@@ -1940,29 +2026,12 @@
       root.style.setProperty('--base-color', baseOklchStr);
 
       // E. 양방향 폼 컴포넌트 데이터 역동기화
-      
-      // 1. HEX 텍스트 박스 동기화 (최근 입력 소스가 'hex'가 아닌 경우에만 갱신)
-      if (state.lastUpdatedSource !== 'hex') {
-        try {
-          // state 정보를 바탕으로 정밀한 sRGB HEX 코드 연산 (colorjs.io 사용)
-          let baseCol = new Color('oklch', [state.l / 100, state.c, state.h]);
-          let calculatedHex = baseCol.to('srgb').toString({ format: 'hex' });
-          inputHex.value = calculatedHex.replace('#', '').toUpperCase();
-          inputHex.classList.remove('error');
-          hexError.style.display = 'none';
-        } catch (e) {
-          console.error("Hex 변환 에러:", e);
-        }
-      }
-
-      // 2. 슬라이더 동기화
       if (state.lastUpdatedSource !== 'slider') {
         lSlider.value = Math.round(state.l);
         cSlider.value = Math.round(state.c * 1000);
         hSlider.value = Math.round(state.h);
       }
 
-      // 3. 숫자 입력창 동기화
       if (state.lastUpdatedSource !== 'number') {
         lNum.value = parseFloat(state.l.toFixed(1));
         cNum.value = parseFloat(state.c.toFixed(3));
@@ -1971,25 +2040,25 @@
 
       // F. 프리뷰 스와치 및 텍스트 갱신
       const swatchElement = document.querySelector('.preview-swatch');
-      const computedBaseStyle = window.getComputedStyle(swatchElement).backgroundColor;
-      const baseColorInfo = parseColor(computedBaseStyle);
-      
-      previewHex.textContent = baseColorInfo.hex;
+      const baseHex = state.lightPalette[500];
+      swatchElement.style.backgroundColor = baseHex;
+      previewHex.textContent = baseHex;
       previewOklch.textContent = `oklch(${state.l.toFixed(1)}% ${state.c.toFixed(3)} ${Math.round(state.h)})`;
 
-      // G. 10단계 컬러칩 실제 렌더링값(HEX/OKLCH) 대입
+      // G. 10단계 컬러칩 실제 렌더링 및 동기화 주입
       activeConfigs.forEach(cfg => {
         const chipEl = document.getElementById(`chip-${cfg.level}`);
         const swatchEl = chipEl.querySelector('.chip-swatch');
         
-        // 브라우저 calc()에 의해 완성된 색상 문자열 확보
-        const computedColor = window.getComputedStyle(swatchEl).backgroundColor;
-        const colorInfo = parseColor(computedColor);
+        // [SSOT 인라인 주입] JS 메모리에서 선 연산된 HEX를 직접 렌더링
+        const finalHex = state.lightPalette[cfg.level];
+        swatchEl.style.backgroundColor = finalHex;
 
         // HEX 텍스트 갱신
-        document.getElementById(`hex-${cfg.level}`).textContent = colorInfo.hex;
+        document.getElementById(`hex-${cfg.level}`).textContent = finalHex;
 
         // 웹 접근성(WCAG 2.1) 표준 상대 휘도 및 대비율에 기반한 자동 글자색 판별
+        const colorInfo = parseColor(finalHex);
         const bgL = getRelativeLuminance(colorInfo.r, colorInfo.g, colorInfo.b);
         const whiteL = 1.0;
 
@@ -2051,7 +2120,7 @@
       });
 
       // URL 및 LocalStorage 상태 동기화 트리거
-      persistBaseColorState(baseColorInfo.hex);
+      persistBaseColorState(baseHex);
 
       // 리셋
       state.lastUpdatedSource = null;
@@ -2089,6 +2158,7 @@
           // 유효하지 않은 NaN 가드
           if (isNaN(state.h)) state.h = 0;
 
+          state.baseHex = rawHex.toUpperCase(); // [SSOT] 무결한 HEX 상태 저장
           state.lastUpdatedSource = 'hex';
           syncAndRender();
         } catch (e) {
@@ -2316,96 +2386,23 @@
       const groupName = "adaptive" + rawGroupName;
       const groupObject = {};
       
-      // 1. 모드에 따른 설정 테이블 분기
-      let configs = [];
-      if (mode === 'light') {
-        configs = getActiveConfigs(); // standardConfigs 혹은 subtleConfigs
-      } else {
-        configs = state.chromaEasingMode === 'standard' ? darkStandardConfigs : darkSubtleConfigs;
-      }
-      
-      // 2. 공통 Hue Shift 한계값 획득
-      let targetMaxShift = 0;
-      if (state.shiftMode === 'auto') {
-        targetMaxShift = calculateAutoHueShift(state.h);
-      } else if (state.shiftMode === 'manual') {
-        targetMaxShift = state.shiftManualVal;
-      }
+      const palette = mode === 'light' ? state.lightPalette : state.darkPalette;
+      const configs = mode === 'light' ? getActiveConfigs() : (state.chromaEasingMode === 'standard' ? darkStandardConfigs : darkSubtleConfigs);
 
       configs.forEach(cfg => {
-        // A. 명도 L 연산 및 범위 클램프 (대안 C 하이브리드 명도 가변 스케일링)
-        const baseL = state.l;
-        let targetL = baseL;
-        if (mode === 'light') {
-          if (cfg.level < 500) {
-            targetL = baseL + (98 - baseL) * (cfg.lOffset / 0.35);
-          } else if (cfg.level > 500) {
-            targetL = baseL - (baseL - 15) * (Math.abs(cfg.lOffset) / 0.40);
-          }
-        } else { // dark 모드 기준 (400단계가 기준점)
-          if (cfg.level < 400) {
-            targetL = baseL - (baseL - 15) * (Math.abs(cfg.lOffset) / 0.40);
-          } else if (cfg.level > 400) {
-            targetL = baseL + (98 - baseL) * (cfg.lOffset / 0.35);
-          }
-        }
-        targetL = Math.max(0, Math.min(100, targetL));
+        const hexStr = palette[cfg.level] || "#FFFFFF";
+        const colorInfo = parseColor(hexStr);
+        const rNorm = parseFloat((colorInfo.r / 255).toFixed(5));
+        const gNorm = parseFloat((colorInfo.g / 255).toFixed(5));
+        const bNorm = parseFloat((colorInfo.b / 255).toFixed(5));
 
-        // B. 채도 C 연산 및 다크 모드 추가 25% 감쇄 적용
-        let targetC = state.c * cfg.cRatio;
-        if (mode === 'dark') {
-          targetC = targetC * 0.75; // 다크 모드 25% 감쇄
-        }
-        targetC = Math.max(0, targetC);
-
-        // C. 색상 H 연산 (지능형 Hue Shift 적용)
-        let stepShift = 0;
-        if (mode === 'light') {
-          if (cfg.level !== 500) {
-            const factor = cfg.level < 500 ? (500 - cfg.level) / 450 : (cfg.level - 500) / 400;
-            stepShift = cfg.level < 500 ? targetMaxShift * -0.45 * factor : targetMaxShift * factor;
-          }
-        } else { // dark 모드 기준 (400단계가 시프트 기준점)
-          if (cfg.level !== 400) {
-            const factor = cfg.level < 400 ? (400 - cfg.level) / 350 : (cfg.level - 400) / 500;
-            stepShift = cfg.level < 400 ? targetMaxShift * -0.45 * factor : targetMaxShift * factor;
-          }
-        }
-
-        const rawHue = (state.h + stepShift) % 360;
-        const normalizedHue = rawHue < 0 ? rawHue + 360 : rawHue;
-
-        // 2차 타겟(250도) Lerp 블렌딩 (최단 경로 적용)
-        let diff = 250 - normalizedHue;
-        if (diff > 180) diff -= 360;
-        if (diff < -180) diff += 360;
-
-        let finalH = normalizedHue + diff * 0.05;
-        if (finalH < 0) finalH += 360;
-        if (finalH >= 360) finalH -= 360;
-
-        // D. Color.js 공간 변환 및 sRGB 클리핑 핫픽스 적용
-        const oklchColor = new Color('oklch', [targetL / 100, targetC, finalH]);
-        const srgbCoords = oklchColor.to('srgb').coords;
-
-        // 0.0 ~ 1.0 범위 강제 클램핑
-        const rNorm = Math.max(0, Math.min(1, srgbCoords[0]));
-        const gNorm = Math.max(0, Math.min(1, srgbCoords[1]));
-        const bNorm = Math.max(0, Math.min(1, srgbCoords[2]));
-
-        // E. W3C/Figma DTCG 규격 객체 완성 (사용자 요청: hex 속성 포함하도록 롤백)
-        const hexStr = oklchColor.to('srgb').toString({ format: 'hex' });
         groupObject[cfg.level] = {
           "$type": "color",
           "$value": {
             "colorSpace": "srgb",
-            "components": [
-              parseFloat(rNorm.toFixed(3)),
-              parseFloat(gNorm.toFixed(3)),
-              parseFloat(bNorm.toFixed(3))
-            ],
+            "components": [rNorm, gNorm, bNorm],
             "alpha": 1,
-            "hex": hexStr
+            "hex": colorInfo.hex
           },
           "$extensions": {
             "com.figma.scopes": ["ALL_SCOPES"]
