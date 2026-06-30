@@ -119,7 +119,7 @@
     ---------------------------------------------------- */
     .dashboard-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr 1.3fr;
+      grid-template-columns: 1fr 1fr 1fr 1fr 1.3fr;
       gap: 1.5rem;
       background: rgba(255, 255, 255, 0.015);
       border: 1px solid rgba(255, 255, 255, 0.04);
@@ -675,6 +675,13 @@
         margin-top: 0.4rem;
       }
     }
+    .hex-error-msg {
+      font-size: 0.8rem;
+      color: #f04452;
+      font-weight: 500;
+      display: none;
+      margin-top: 0.2rem;
+    }
   </style>
 </head>
 <body>
@@ -728,6 +735,18 @@
           <button type="button" id="btn-theme-light" class="btn-mode active" style="flex: 1;">Light</button>
           <button type="button" id="btn-theme-dark" class="btn-mode" style="flex: 1;">Dark</button>
         </div>
+      </div>
+
+      <!-- 대비 검사용 배경색 입력 (Contrast BG) -->
+      <div class="control-box">
+        <label class="control-label" for="input-contrast-bg">
+          Contrast BG
+        </label>
+        <div class="input-wrapper">
+          <span class="hash-symbol">#</span>
+          <input type="text" id="input-contrast-bg" class="input-hex-text" maxlength="6" value="FFFFFF" placeholder="HEX 입력">
+        </div>
+        <span class="hex-error-msg" id="contrast-bg-error">유효하지 않은 HEX 코드 형식입니다 (6자리 형식 필요)</span>
       </div>
 
       <!-- 명도 슬라이더 제어 -->
@@ -834,7 +853,8 @@
       maxL: 0.98,             // 최대 명도
       minL: 0.15,             // 최소 명도
       isAutoPaired: true,     // 자동 페어링 여부
-      themeMode: 'light'      // 화면 테마 모드 ('light' 또는 'dark')
+      themeMode: 'light',     // 화면 테마 모드 ('light' 또는 'dark')
+      contrastBg: 'FFFFFF'    // 대비 검사용 배경색 HEX
     };
 
     // 10단계 스케일 규격 정의
@@ -853,6 +873,27 @@
     const codeJson = document.getElementById('code-json');
     const btnThemeLight = document.getElementById('btn-theme-light');
     const btnThemeDark = document.getElementById('btn-theme-dark');
+    const inputContrastBg = document.getElementById('input-contrast-bg');
+    const contrastBgError = document.getElementById('contrast-bg-error');
+
+    // 브라우저 컬러 파서용 캔버스 인스턴스화
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    const ctx = canvas.getContext('2d');
+
+    // 브라우저 실제 해석 색상 추출 파서
+    function parseColor(cssColorString) {
+      ctx.clearRect(0, 0, 1, 1);
+      ctx.fillStyle = cssColorString;
+      ctx.fillRect(0, 0, 1, 1);
+      const data = ctx.getImageData(0, 0, 1, 1).data;
+      const r = data[0];
+      const g = data[1];
+      const b = data[2];
+      const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+      return { hex, r, g, b };
+    }
 
     // ----------------------------------------------------
     // 2. 수학 및 파싱 유틸리티 함수
@@ -930,6 +971,13 @@
     // 4. 무채색 팔레트 연산 및 렌더링 파이프라인
     // ----------------------------------------------------
     function updateScale() {
+      // 대비 검사용 배경색(Contrast BG) 상대 휘도 연산
+      const targetBgColorInfo = parseColor('#' + state.contrastBg);
+      const targetBgL = getRelativeLuminance(targetBgColorInfo.r, targetBgColorInfo.g, targetBgColorInfo.b);
+
+      // 어두운 글자색(기본 비교 기준값: #0f172a) 상대 휘도 연산
+      const darkL = getRelativeLuminance(15, 23, 42);
+
       // UI 및 텍스트 갱신
       textMaxL.textContent = state.maxL.toFixed(2);
       textMinL.textContent = state.minL.toFixed(2);
@@ -988,8 +1036,6 @@
         const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
         
         // 4. 웹 접근성(WCAG 2.1) 대비 계산
-        // 대비 연산용 어두운 기준값은 완벽한 다크 슬레이트(#0f172a) 기준
-        const darkL = getRelativeLuminance(15, 23, 42); // #0f172a 상대 휘도
         const whiteL = 1.0;                             // #ffffff 상대 휘도
         const bgL = getRelativeLuminance(r, g, b);
 
@@ -1000,8 +1046,8 @@
         const isDarkTextBetter = ratioWithDark >= ratioWithWhite;
         const textRenderColor = isDarkTextBetter ? 'oklch(44.6% 0.043 257.281)' : '#ffffff';
 
-        // 최종 명암비 뱃지 계산
-        const finalRatio = isDarkTextBetter ? ratioWithDark : ratioWithWhite;
+        // 최종 명암비 뱃지 계산 (지정된 배경색 targetBgL 대비 현재 컬러칩 휘도 bgL)
+        const finalRatio = targetBgL > bgL ? (targetBgL + 0.05) / (bgL + 0.05) : (bgL + 0.05) / (targetBgL + 0.05);
         let gradeText = '';
         let badgeClass = '';
 
@@ -1189,6 +1235,39 @@
         updateScale();
       } else {
         inputHex.classList.add('error');
+      }
+    });
+
+    // 대비 검사용 배경색 HEX 입력 감지
+    inputContrastBg.addEventListener('input', () => {
+      let rawHex = inputContrastBg.value.trim();
+      
+      // 샵 기호 정규화
+      if (rawHex.startsWith('#')) {
+        rawHex = rawHex.substring(1);
+        inputContrastBg.value = rawHex;
+      }
+
+      // HEX 정규식 패턴 검사 (3자리 혹은 6자리 유효성 판단)
+      const is3Digit = /^[0-9A-Fa-f]{3}$/.test(rawHex);
+      const is6Digit = /^[0-9A-Fa-f]{6}$/.test(rawHex);
+
+      if (is3Digit || is6Digit) {
+        inputContrastBg.classList.remove('error');
+        contrastBgError.style.display = 'none';
+
+        // 3자리 HEX 복원 (예: FFF -> FFFFFF)
+        let normalizedHex = rawHex;
+        if (is3Digit) {
+          normalizedHex = rawHex.split('').map(char => char + char).join('');
+        }
+
+        state.contrastBg = normalizedHex.toUpperCase();
+        updateScale();
+      } else {
+        // 비정상 포맷일 때 테두리 적색 하이라이트
+        inputContrastBg.classList.add('error');
+        contrastBgError.style.display = 'block';
       }
     });
 
