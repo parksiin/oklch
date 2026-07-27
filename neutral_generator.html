@@ -760,17 +760,17 @@
         <!-- Min Lightness -->
         <div class="limit-slider-row">
           <span>Min L</span>
-          <input type="range" id="slider-min-l" min="5" max="30" value="15">
-          <span id="text-min-l" class="limit-val-text">0.15</span>
+          <input type="range" id="slider-min-l" min="5" max="30" value="8">
+          <span id="text-min-l" class="limit-val-text">0.08</span>
         </div>
       </div>
 
     </section>
 
-    <!-- 무채색 스케일 리스트 -->
-    <section class="palette-section">
-      <div class="palette-section-header">
-        <h2 class="palette-title">무채색 10단계 컬러 스케일</h2>
+    <!-- 무채색 11단계 컬러 스케일 뷰 영역 -->
+    <section class="palette-card">
+      <div class="palette-header-bar">
+        <h2 class="palette-title">무채색 11단계 컬러 스케일</h2>
       </div>
       <p class="accessibility-info">
         ℹ️ <strong>웹 접근성(WCAG 2.1) 자동 준수</strong>: 명암비 연산 기준은 소프트 블랙(#0F172A)을 비교군으로 엄격하게 판정하되, 제너레이터의 다크 테마 시인성을 위해 UI 글자색은 보정된 회색(#4B546C)으로 이원화 격리 적용되었습니다.
@@ -851,14 +851,16 @@
       primaryHex: '3182F6',   // 기본 주 색상
       temperature: 'slate',   // 기본 톤
       maxL: 0.98,             // 최대 명도
-      minL: 0.15,             // 최소 명도
+      minL: 0.08,             // 최소 명도 (950단계 하향 반영)
       isAutoPaired: true,     // 자동 페어링 여부
       themeMode: 'light',     // 화면 테마 모드 ('light' 또는 'dark')
-      contrastBg: 'FFFFFF'    // 대비 검사용 배경색 HEX
+      contrastBg: 'FFFFFF',   // 대비 검사용 배경색 HEX
+      lightScaleData: [],     // [SSOT] 라이트 모드 11단계 최종 데이터 객체 배열
+      darkScaleData: []       // [SSOT] 다크 모드 11단계 최종 데이터 객체 배열
     };
 
-    // 10단계 스케일 규격 정의
-    const scaleSteps = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
+    // 11단계 스케일 규격 정의 (Tailwind CSS v4.3 50~950 규격)
+    const scaleSteps = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
 
     // DOM 요소 캐싱
     const inputHex = document.getElementById('primary-hex');
@@ -968,24 +970,33 @@
     }
 
     // ----------------------------------------------------
-    // 4. 무채색 팔레트 연산 및 렌더링 파이프라인
+    // 4. 무채색 팔레트 연산 및 렌더링 파이프라인 (SSOT 단일 원천화)
     // ----------------------------------------------------
-    function updateScale() {
-      // 대비 검사용 배경색(Contrast BG) 상대 휘도 연산
-      const targetBgColorInfo = parseColor('#' + state.contrastBg);
-      const targetBgL = getRelativeLuminance(targetBgColorInfo.r, targetBgColorInfo.g, targetBgColorInfo.b);
 
-      // 어두운 글자색(기본 비교 기준값: #0f172a) 상대 휘도 연산
-      const darkL = getRelativeLuminance(15, 23, 42);
+    // Tailwind Slate 정규화 하향 명도 비율 (Slate 실측 100% 반영 S-Curve)
+    const lOffsets = [0.000, 0.019, 0.065, 0.135, 0.328, 0.503, 0.630, 0.716, 0.825, 0.908, 1.000];
 
-      // UI 및 텍스트 갱신
-      textMaxL.textContent = state.maxL.toFixed(2);
-      textMinL.textContent = state.minL.toFixed(2);
+    // Tailwind 무채색 정규화 종형 채도 비율 (500단계 100% 피크)
+    const cRatios = [0.07, 0.15, 0.30, 0.55, 0.85, 1.00, 0.90, 0.75, 0.50, 0.30, 0.15];
 
-      // 1. 라이트 모드 기준의 L, C, H 10단계 기본 데이터 생성
+    // 무채색 톤별 Peak Chroma 매핑 (Tailwind v4.3 실측값)
+    const maxChromaMap = {
+      slate: 0.046,
+      cool: 0.027,
+      warm: 0.013,
+      neutral: 0.000
+    };
+
+    // 단일 출처(SSOT) 11단계 스케일 연산 함수 (Tailwind CSS 실측 정규화 비율 수식 적용)
+    function calculateScaleForMode(mode, targetBgL, darkL) {
       const rawStepsData = scaleSteps.map((level, i) => {
-        const lVal = state.maxL - i * ((state.maxL - state.minL) / 9);
-        let cVal = 0.012 - i * 0.001;
+        // 1. 명도(Lightness) 정규화 S-Curve 적용 (500단계 50.3% 지점 L~53% 안착)
+        const lVal = state.maxL - (state.maxL - state.minL) * lOffsets[i];
+
+        // 2. 채도(Chroma) 톤별 Peak Chroma 기준 정규화 종형 곡선 적용
+        const basePeakC = maxChromaMap[state.temperature] !== undefined ? maxChromaMap[state.temperature] : 0.013;
+        let cVal = basePeakC * cRatios[i];
+
         let hVal = 0;
         if (state.temperature === 'slate') {
           hVal = 260;
@@ -1000,11 +1011,8 @@
         return { level, lVal, cVal, hVal };
       });
 
-      // 2. 다크 모드(themeMode === 'dark') 일 때 배열을 완벽히 역순으로 뒤집기 (Symmetric Inversion)
-      // 라이트 모드의 50단계(가장 밝은)가 다크 모드 900단계로 매치되도록 
-      // 배열 내의 [lVal, cVal, hVal] 값 순서만 리버스하고 level(50~900) 키 매칭은 유지합니다.
       let displayStepsData = rawStepsData;
-      if (state.themeMode === 'dark') {
+      if (mode === 'dark') {
         const reversedL = rawStepsData.map(item => item.lVal).reverse();
         const reversedC = rawStepsData.map(item => item.cVal).reverse();
         const reversedH = rawStepsData.map(item => item.hVal).reverse();
@@ -1019,7 +1027,6 @@
 
       const paletteData = [];
 
-      // 3. 무채색 루프 및 sRGB 변환
       displayStepsData.forEach((stepItem) => {
         const { level, lVal, cVal, hVal } = stepItem;
 
@@ -1035,7 +1042,12 @@
         
         const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
         
-        // 4. 웹 접근성(WCAG 2.1) 대비 계산
+        // 정수 r, g, b에서 직접 도출되는 무결한 5자리 sRGB float components (JSON/Figma 일치 보장)
+        const normR = parseFloat((r / 255).toFixed(5));
+        const normG = parseFloat((g / 255).toFixed(5));
+        const normB = parseFloat((b / 255).toFixed(5));
+
+        // 웹 접근성(WCAG 2.1) 대비 계산
         const whiteL = 1.0;                             // #ffffff 상대 휘도
         const bgL = getRelativeLuminance(r, g, b);
 
@@ -1062,7 +1074,7 @@
           badgeClass = 'fail';
         }
 
-        // 단계 데이터를 객체로 보관
+        // 단일 원천(SSOT) 무결 객체 데이터 생성
         paletteData.push({
           level,
           varName: `--neutral-${level}`,
@@ -1072,22 +1084,39 @@
           ratio: finalRatio.toFixed(2),
           gradeText,
           badgeClass,
-          coords: [
-            parseFloat(Math.max(0, Math.min(1, srgbColor.coords[0])).toFixed(3)),
-            parseFloat(Math.max(0, Math.min(1, srgbColor.coords[1])).toFixed(3)),
-            parseFloat(Math.max(0, Math.min(1, srgbColor.coords[2])).toFixed(3))
-          ]
+          coords: [normR, normG, normB]
         });
       });
 
-      // 5. DOM 빌드 및 렌더링
-      renderPaletteDOM(paletteData);
-
-      // 6. 코드 박스 데이터 갱신
-      updateExportData(paletteData);
+      return paletteData;
     }
 
-    // 실제 HTML 요소를 화면에 렌더링하는 함수
+    function updateScale() {
+      // 대비 검사용 배경색(Contrast BG) 상대 휘도 연산
+      const targetBgColorInfo = parseColor('#' + state.contrastBg);
+      const targetBgL = getRelativeLuminance(targetBgColorInfo.r, targetBgColorInfo.g, targetBgColorInfo.b);
+
+      // 어두운 글자색(기본 비교 기준값: #0f172a) 상대 휘도 연산
+      const darkL = getRelativeLuminance(15, 23, 42);
+
+      // UI 및 텍스트 갱신
+      textMaxL.textContent = state.maxL.toFixed(2);
+      textMinL.textContent = state.minL.toFixed(2);
+
+      // [SSOT 단일 원천] Light & Dark 11단계 스케일 연산 수행 후 전역 상태(State)에 한 번만 저장
+      state.lightScaleData = calculateScaleForMode('light', targetBgL, darkL);
+      state.darkScaleData = calculateScaleForMode('dark', targetBgL, darkL);
+
+      const activeData = state.themeMode === 'light' ? state.lightScaleData : state.darkScaleData;
+
+      // 5. DOM 빌드 및 렌더링 (Read-Only)
+      renderPaletteDOM(activeData);
+
+      // 6. 코드 박스 데이터 갱신 (Read-Only)
+      updateExportData(activeData);
+    }
+
+    // 실제 HTML 요소를 화면에 렌더링하는 함수 (Read-Only)
     function renderPaletteDOM(data) {
       paletteContainer.innerHTML = '';
       
@@ -1124,39 +1153,9 @@
       });
     }
 
-    // 특정 테마 모드('light' 또는 'dark') 기준으로 전체 10단계 JSON 스케일 데이터를 생성하는 헬퍼 함수
+    // 특정 테마 모드('light' 또는 'dark') 기준으로 SSOT 저장소에서 100% 일치하는 JSON 데이터를 조립하는 헬퍼 함수 (Read-Only)
     function generateModeJson(mode) {
-      const rawStepsData = scaleSteps.map((level, i) => {
-        const lVal = state.maxL - i * ((state.maxL - state.minL) / 9);
-        let cVal = 0.012 - i * 0.001;
-        let hVal = 0;
-        if (state.temperature === 'slate') {
-          hVal = 260;
-        } else if (state.temperature === 'cool') {
-          hVal = 220;
-        } else if (state.temperature === 'warm') {
-          hVal = 45;
-        } else if (state.temperature === 'neutral') {
-          cVal = 0;
-          hVal = NaN;
-        }
-        return { level, lVal, cVal, hVal };
-      });
-
-      let displayStepsData = rawStepsData;
-      if (mode === 'dark') {
-        const reversedL = rawStepsData.map(item => item.lVal).reverse();
-        const reversedC = rawStepsData.map(item => item.cVal).reverse();
-        const reversedH = rawStepsData.map(item => item.hVal).reverse();
-
-        displayStepsData = rawStepsData.map((item, idx) => ({
-          level: item.level,
-          lVal: reversedL[idx],
-          cVal: reversedC[idx],
-          hVal: reversedH[idx]
-        }));
-      }
-
+      const scaleData = mode === 'light' ? state.lightScaleData : state.darkScaleData;
       const toneKey = "neutral" + state.temperature.charAt(0).toUpperCase() + state.temperature.slice(1);
       const figmaModeLabel = mode === 'light' ? 'Light' : 'Dark';
       
@@ -1167,30 +1166,14 @@
         }
       };
 
-      displayStepsData.forEach(stepItem => {
-        const { level, lVal, cVal, hVal } = stepItem;
-        const evalHue = isNaN(hVal) || hVal === null ? 0 : hVal;
-        const oklchColor = new Color('oklch', [lVal, cVal, evalHue]);
-        const srgbColor = oklchColor.to('srgb');
-
-        const r = Math.max(0, Math.min(255, Math.round(srgbColor.coords[0] * 255)));
-        const g = Math.max(0, Math.min(255, Math.round(srgbColor.coords[1] * 255)));
-        const b = Math.max(0, Math.min(255, Math.round(srgbColor.coords[2] * 255)));
-        const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
-
-        const clippedCoords = [
-          parseFloat(Math.max(0, Math.min(1, srgbColor.coords[0])).toFixed(3)),
-          parseFloat(Math.max(0, Math.min(1, srgbColor.coords[1])).toFixed(3)),
-          parseFloat(Math.max(0, Math.min(1, srgbColor.coords[2])).toFixed(3))
-        ];
-
-        jsonStructure[toneKey][level] = {
+      scaleData.forEach(chip => {
+        jsonStructure[toneKey][chip.level] = {
           "$type": "color",
           "$value": {
             "colorSpace": "srgb",
-            "components": clippedCoords,
+            "components": chip.coords,
             "alpha": 1,
-            "hex": hex
+            "hex": chip.hex
           },
           "$extensions": {
             "com.figma.scopes": ["ALL_SCOPES"]
@@ -1201,7 +1184,7 @@
       return JSON.stringify(jsonStructure, null, 2);
     }
 
-    // 내보내기용 코드 및 JSON 데이터를 생성하는 함수
+    // 내보내기용 코드 및 JSON 데이터를 생성하는 함수 (Read-Only)
     function updateExportData(data) {
       // CSS 변수 텍스트 생성
       let cssText = `:root {\n`;

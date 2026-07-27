@@ -36,6 +36,7 @@
       --h-shift-700: 0;
       --h-shift-800: 0;
       --h-shift-900: 0;
+      --h-shift-950: 0;
 
       /* 채도 감쇄(Chroma Easing) 단계별 비율 동적 맵핑 변수 */
       --c-ratio-50: 0.15;
@@ -48,6 +49,7 @@
       --c-ratio-700: 0.85;
       --c-ratio-800: 0.75;
       --c-ratio-900: 0.60;
+      --c-ratio-950: 0.45;
 
       --l-val-50: 95.1%;
       --l-val-100: 90.1%;
@@ -59,8 +61,9 @@
       --l-val-700: 42.1%;
       --l-val-800: 32.1%;
       --l-val-900: 20.1%;
+      --l-val-950: 8.0%;
 
-      /* [요구사항] 동적 채도 비율(--c-ratio-X)을 연동한 비선형 10단계 계산 */
+      /* [요구사항] 동적 채도 비율(--c-ratio-X)을 연동한 비선형 11단계 계산 */
       --color-50: oklch(from var(--base-color) var(--l-val-50) calc(c * var(--c-ratio-50)) calc(h + var(--h-shift-50)));
       --color-100: oklch(from var(--base-color) var(--l-val-100) calc(c * var(--c-ratio-100)) calc(h + var(--h-shift-100)));
       --color-200: oklch(from var(--base-color) var(--l-val-200) calc(c * var(--c-ratio-200)) calc(h + var(--h-shift-200)));
@@ -71,6 +74,7 @@
       --color-700: oklch(from var(--base-color) var(--l-val-700) calc(c * var(--c-ratio-700)) calc(h + var(--h-shift-700)));
       --color-800: oklch(from var(--base-color) var(--l-val-800) calc(c * var(--c-ratio-800)) calc(h + var(--h-shift-800)));
       --color-900: oklch(from var(--base-color) var(--l-val-900) calc(c * var(--c-ratio-900)) calc(h + var(--h-shift-900)));
+      --color-950: oklch(from var(--base-color) var(--l-val-950) calc(c * var(--c-ratio-950)) calc(h + var(--h-shift-950)));
 
       /* 테마 레이아웃용 컬러 토큰 */
       --bg-dark: #07090e;
@@ -683,6 +687,7 @@
     #chip-700 .chip-swatch { background-color: var(--color-700); }
     #chip-800 .chip-swatch { background-color: var(--color-800); }
     #chip-900 .chip-swatch { background-color: var(--color-900); }
+    #chip-950 .chip-swatch { background-color: var(--color-950); }
 
     .chip-level {
       font-weight: 700;
@@ -1652,18 +1657,19 @@
      9. JavaScript 로직 (양방향 바인딩, 정밀 변환, 지능형 보정)
   ---------------------------------------------------- -->
   <script>
-    // [요구사항] 다중 채도 감쇄(Chroma Easing)를 위한 10단계 곡선 설정 분리
+    // [요구사항] 다중 채도 감쇄(Chroma Easing)를 위한 11단계 곡선 설정 분리 (500단계 중앙 완벽 대칭)
     const standardConfigs = [
       { level: 50,  lOffset: 0.35,  cRatio: 0.15, varName: '--color-50' },
       { level: 100, lOffset: 0.30,  cRatio: 0.30, varName: '--color-100' },
       { level: 200, lOffset: 0.22,  cRatio: 0.50, varName: '--color-200' },
       { level: 300, lOffset: 0.12,  cRatio: 0.75, varName: '--color-300' },
       { level: 400, lOffset: 0.05,  cRatio: 0.90, varName: '--color-400' },
-      { level: 500, lOffset: 0.00,  cRatio: 1.00, varName: '--color-500' }, // Base Color
+      { level: 500, lOffset: 0.00,  cRatio: 1.00, varName: '--color-500' }, // Base Color (Anchor)
       { level: 600, lOffset: -0.08, cRatio: 0.95, varName: '--color-600' },
       { level: 700, lOffset: -0.18, cRatio: 0.85, varName: '--color-700' },
       { level: 800, lOffset: -0.28, cRatio: 0.75, varName: '--color-800' },
-      { level: 900, lOffset: -0.40, cRatio: 0.60, varName: '--color-900' }
+      { level: 900, lOffset: -0.40, cRatio: 0.60, varName: '--color-900' },
+      { level: 950, lOffset: -0.45, cRatio: 0.45, varName: '--color-950' }
     ];
 
     const subtleConfigs = [
@@ -1672,38 +1678,41 @@
       { level: 200, lOffset: 0.22,  cRatio: 0.35, varName: '--color-200' },
       { level: 300, lOffset: 0.12,  cRatio: 0.60, varName: '--color-300' },
       { level: 400, lOffset: 0.05,  cRatio: 0.85, varName: '--color-400' },
-      { level: 500, lOffset: 0.00,  cRatio: 1.00, varName: '--color-500' }, // Base Color
+      { level: 500, lOffset: 0.00,  cRatio: 1.00, varName: '--color-500' }, // Base Color (Anchor)
       { level: 600, lOffset: -0.08, cRatio: 0.85, varName: '--color-600' },
       { level: 700, lOffset: -0.18, cRatio: 0.60, varName: '--color-700' },
       { level: 800, lOffset: -0.28, cRatio: 0.35, varName: '--color-800' },
-      { level: 900, lOffset: -0.40, cRatio: 0.15, varName: '--color-900' }
+      { level: 900, lOffset: -0.40, cRatio: 0.15, varName: '--color-900' },
+      { level: 950, lOffset: -0.45, cRatio: 0.08, varName: '--color-950' }
     ];
 
-    // 다크 모드 연산 전용 Configs 테이블 (400단계가 Base Color 기준)
+    // 다크 모드 연산 전용 Configs 테이블 (11단계 대칭 역상 - 50=어두운 배경 8%, 950=밝은 글씨 98%)
     const darkStandardConfigs = [
-      { level: 50,  lOffset: -0.40, cRatio: 0.15 },
-      { level: 100, lOffset: -0.28, cRatio: 0.30 },
-      { level: 200, lOffset: -0.18, cRatio: 0.50 },
-      { level: 300, lOffset: -0.08, cRatio: 0.75 },
-      { level: 400, lOffset: 0.00,  cRatio: 0.90 },
-      { level: 500, lOffset: 0.05,  cRatio: 1.00 },
-      { level: 600, lOffset: 0.12,  cRatio: 0.95 },
-      { level: 700, lOffset: 0.22,  cRatio: 0.85 },
-      { level: 800, lOffset: 0.30,  cRatio: 0.75 },
-      { level: 900, lOffset: 0.35,  cRatio: 0.60 }
+      { level: 50,  lOffset: -0.45, cRatio: 0.15 },
+      { level: 100, lOffset: -0.40, cRatio: 0.30 },
+      { level: 200, lOffset: -0.28, cRatio: 0.50 },
+      { level: 300, lOffset: -0.18, cRatio: 0.75 },
+      { level: 400, lOffset: -0.08, cRatio: 0.90 },
+      { level: 500, lOffset: 0.00,  cRatio: 1.00 }, // Anchor (다크 500)
+      { level: 600, lOffset: 0.05,  cRatio: 0.95 },
+      { level: 700, lOffset: 0.12,  cRatio: 0.85 },
+      { level: 800, lOffset: 0.22,  cRatio: 0.75 },
+      { level: 900, lOffset: 0.30,  cRatio: 0.60 },
+      { level: 950, lOffset: 0.35,  cRatio: 0.45 }
     ];
 
     const darkSubtleConfigs = [
-      { level: 50,  lOffset: -0.40, cRatio: 0.08 },
-      { level: 100, lOffset: -0.28, cRatio: 0.18 },
-      { level: 200, lOffset: -0.18, cRatio: 0.35 },
-      { level: 300, lOffset: -0.08, cRatio: 0.60 },
-      { level: 400, lOffset: 0.00,  cRatio: 0.85 },
-      { level: 500, lOffset: 0.05,  cRatio: 1.00 },
-      { level: 600, lOffset: 0.12,  cRatio: 0.85 },
-      { level: 700, lOffset: 0.22,  cRatio: 0.60 },
-      { level: 800, lOffset: 0.30,  cRatio: 0.35 },
-      { level: 900, lOffset: 0.35,  cRatio: 0.15 }
+      { level: 50,  lOffset: -0.45, cRatio: 0.08 },
+      { level: 100, lOffset: -0.40, cRatio: 0.18 },
+      { level: 200, lOffset: -0.28, cRatio: 0.35 },
+      { level: 300, lOffset: -0.18, cRatio: 0.60 },
+      { level: 400, lOffset: -0.08, cRatio: 0.85 },
+      { level: 500, lOffset: 0.00,  cRatio: 1.00 }, // Anchor (다크 500)
+      { level: 600, lOffset: 0.05,  cRatio: 0.85 },
+      { level: 700, lOffset: 0.12,  cRatio: 0.60 },
+      { level: 800, lOffset: 0.22,  cRatio: 0.35 },
+      { level: 900, lOffset: 0.30,  cRatio: 0.15 },
+      { level: 950, lOffset: 0.35,  cRatio: 0.08 }
     ];
 
     // 활성 채도 감쇄 모드 설정을 가져오는 헬퍼 함수
@@ -1852,17 +1861,18 @@
 
         const baseL = state.l;
         let targetL = baseL;
+        const minChromL = 25.0; // 유채색 명도 하한선 방어 (Floor 25.0%)
         if (cfg.level < 500) {
           targetL = baseL + (98 - baseL) * (cfg.lOffset / 0.35);
         } else {
-          targetL = baseL - (baseL - 15) * (Math.abs(cfg.lOffset) / 0.40);
+          targetL = baseL - (baseL - minChromL) * (Math.abs(cfg.lOffset) / 0.45);
         }
         targetL = Math.max(0, Math.min(100, targetL));
 
         let targetC = state.c * cfg.cRatio;
         targetC = Math.max(0, targetC);
 
-        const factor = cfg.level < 500 ? (500 - cfg.level) / 450 : (cfg.level - 500) / 400;
+        const factor = cfg.level < 500 ? (500 - cfg.level) / 450 : (cfg.level - 500) / 450;
         const stepShift = cfg.level < 500 ? targetMaxShift * -0.45 * factor : targetMaxShift * factor;
         const rawHue = (state.h + stepShift) % 360;
         const normalizedHue = rawHue < 0 ? rawHue + 360 : rawHue;
@@ -1879,23 +1889,23 @@
         state.lightPalette[cfg.level] = oklchColor.to('srgb').toString({ format: 'hex' }).toUpperCase();
       });
 
-      // 3. Dark 모드 팔레트 계산
+      // 3. Dark 모드 팔레트 계산 (50=어두운 배경 25%, 950=밝은 글씨 98%)
       const darkConfigs = state.chromaEasingMode === 'standard' ? darkStandardConfigs : darkSubtleConfigs;
       darkConfigs.forEach(cfg => {
         const baseL = state.l;
         let targetL = baseL;
-        if (cfg.level < 400) {
-          targetL = baseL - (baseL - 15) * (Math.abs(cfg.lOffset) / 0.40);
-        } else {
+        const minChromL = 25.0; // 유채색 명도 하한선 방어 (Floor 25.0%)
+        if (cfg.lOffset < 0) {
+          targetL = baseL - (baseL - minChromL) * (Math.abs(cfg.lOffset) / 0.45);
+        } else if (cfg.lOffset > 0) {
           targetL = baseL + (98 - baseL) * (cfg.lOffset / 0.35);
         }
         targetL = Math.max(0, Math.min(100, targetL));
 
-        let targetC = state.c * cfg.cRatio * 0.75;
-        targetC = Math.max(0, targetC);
+        let targetC = Math.max(0, state.c * cfg.cRatio * 0.75); // 다크 채도 25% 감쇄 적용
 
-        const factor = cfg.level < 400 ? (400 - cfg.level) / 350 : (cfg.level - 400) / 500;
-        const stepShift = cfg.level < 400 ? targetMaxShift * -0.45 * factor : targetMaxShift * factor;
+        const factor = cfg.lOffset < 0 ? (500 - cfg.level) / 450 : (cfg.level - 500) / 450;
+        const stepShift = cfg.lOffset < 0 ? targetMaxShift * -0.45 * factor : targetMaxShift * factor;
         const rawHue = (state.h + stepShift) % 360;
         const normalizedHue = rawHue < 0 ? rawHue + 360 : rawHue;
 
@@ -1921,29 +1931,59 @@
       return 0.2126 * R + 0.7152 * G + 0.0722 * B;
     }
 
-    // 3. 지능형 자동 색상 이동 (Auto Hue Shifting) 각도 연산기
+    // 먼셀 10색상환 앵커 매트릭스 (RP clamp: 330 정밀 보정)
+    const HUE_ANCHORS = [
+      { name: 'R',  h: 25,  shift: 0,   clamp: 20 },
+      { name: 'YR', h: 45,  shift: -20, clamp: 25 },
+      { name: 'Y',  h: 100, shift: -45, clamp: 25 },
+      { name: 'GY', h: 130, shift: -15, clamp: 110 },
+      { name: 'G',  h: 150, shift: -10, clamp: 140 },
+      { name: 'BG', h: 180, shift: 0,   clamp: 170 },
+      { name: 'B',  h: 250, shift: 15,  clamp: 270 },
+      { name: 'PB', h: 280, shift: 0,   clamp: 280 },
+      { name: 'P',  h: 310, shift: -15, clamp: 290 },
+      { name: 'RP', h: 350, shift: -20, clamp: 330 } // RP 종착지 330도 정밀 바인딩
+    ];
+
+    // 3. 지능형 자동 색상 이동 (Auto Hue Shifting) 먼셀 10앵커 연속 공간 Lerp 엔진
     function calculateAutoHueShift(h) {
-      // 0 ~ 360 도 대역별 탁해짐 해소 오프셋 산출
-      if (h >= 40 && h < 100) {
-        // 노랑/오렌지 대역: 어두울수록 오렌지/레드 계열로 꺾음 (-)
-        return -16;
-      } else if (h >= 0 && h < 40) {
-        // 레드 대역: 어두울수록 자주색 방향 (+)
-        return 12;
-      } else if (h >= 340 && h <= 360) {
-        // 레드 대역 2
-        return 12;
-      } else if (h >= 100 && h < 200) {
-        // 그린 대역: 어두울수록 더 딥한 틸/청록으로 (-)
-        return -6;
-      } else if (h >= 200 && h < 285) {
-        // 블루 대역: 어두울수록 깊이감 있는 네이비/바이올렛으로 (+)
-        return 14;
-      } else if (h >= 285 && h < 340) {
-        // 퍼플 대역: 어두울수록 마젠타/딥레드 방향 (-)
-        return -10;
+      // 1. 360도 원형 랩어라운드(Wrap-around) 연속 공간 변환 (0°~25° 구간 +360° 보정)
+      let hVal = h;
+      if (h < 25) {
+        hVal = h + 360;
       }
-      return 0;
+
+      // 2. 입력 hVal이 위치한 인접 2개 앵커 탐색
+      let prev = HUE_ANCHORS[HUE_ANCHORS.length - 1]; // 기본값: RP (350°)
+      let next = { name: 'R', h: 385, shift: 0, clamp: 380 }; // 기본값: R (25° + 360°)
+
+      for (let i = 0; i < HUE_ANCHORS.length - 1; i++) {
+        if (hVal >= HUE_ANCHORS[i].h && hVal <= HUE_ANCHORS[i + 1].h) {
+          prev = HUE_ANCHORS[i];
+          next = HUE_ANCHORS[i + 1];
+          break;
+        }
+      }
+
+      // 3. 선형 보간(Lerp) 비율 t 계산 (0.0 ~ 1.0)
+      const t = (hVal - prev.h) / (next.h - prev.h);
+      const lerpedShift = prev.shift + t * (next.shift - prev.shift);
+      const lerpedClamp = prev.clamp + t * (next.clamp - prev.clamp);
+
+      // 4. 연속 공간(Continuous Space) Clamping 방어 연산 (중간 % 360 전면 차단)
+      const rawTargetHue = hVal + lerpedShift;
+      let finalHue = rawTargetHue;
+
+      if (lerpedShift < 0) {
+        // 음수 시프트: 하한선(Clamp) 아래로 내려가지 못하도록 Math.max 방어
+        finalHue = Math.max(lerpedClamp, rawTargetHue);
+      } else if (lerpedShift > 0) {
+        // 양수 시프트: 상한선(Clamp) 위로 올라가지 못하도록 Math.min 방어
+        finalHue = Math.min(lerpedClamp, rawTargetHue);
+      }
+
+      // 5. 연속 공간에서 연산된 무결한 순수 시프트 델타(Delta) 오프셋 직접 반환
+      return finalHue - hVal;
     }
 
     // 4. [양방향 동기화 핵심] UI 동기화 및 렌더링 파이프라인
@@ -2090,10 +2130,11 @@
         // 해당 단계의 최종 OKLCH 실질 명시 수치 계산 (대안 C 하이브리드 명도 가변 스케일링)
         const baseL = state.l;
         let targetL = baseL;
+        const minChromL = 25.0; // 유채색 명도 하한선 방어 (Floor 25.0%)
         if (cfg.level < 500) {
           targetL = baseL + (98 - baseL) * (cfg.lOffset / 0.35);
         } else if (cfg.level > 500) {
-          targetL = baseL - (baseL - 15) * (Math.abs(cfg.lOffset) / 0.40);
+          targetL = baseL - (baseL - minChromL) * (Math.abs(cfg.lOffset) / 0.45);
         }
         const clampedLevelL = Math.max(0, Math.min(100, Math.round(targetL)));
         const finalC = state.c * cfg.cRatio;
@@ -2102,7 +2143,7 @@
         let stepShift = 0;
         if (cfg.level === 500) stepShift = 0;
         else if (cfg.level < 500) stepShift = targetMaxShift * -0.45 * ((500 - cfg.level) / 450);
-        else stepShift = targetMaxShift * ((cfg.level - 500) / 400);
+        else stepShift = targetMaxShift * ((cfg.level - 500) / 450);
 
         let finalH = (state.h + stepShift) % 360;
         if (finalH < 0) finalH += 360;
@@ -2446,52 +2487,12 @@
       const blob = new Blob([jsonString], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       
-      // 파일명 구성을 위해 500단계의 임시 HEX 계산 (colorjs.io 사용)
-      let hex500 = "ffffff";
-      try {
-        let configs = mode === 'light' ? getActiveConfigs() : (state.chromaEasingMode === 'standard' ? darkStandardConfigs : darkSubtleConfigs);
-        let cfg500 = configs.find(c => c.level === 500);
-        let targetL = state.l;
-        if (mode === 'light') {
-          // cfg500.level === 500 이므로 targetL = state.l
-        } else {
-          // 다크 모드 500단계 (400단계 기준점보다 크므로 Max L 98% 방향으로 스케일링)
-          targetL = state.l + (98 - state.l) * (cfg500.lOffset / 0.35);
-        }
-        let targetC = state.c * cfg500.cRatio;
-        if (mode === 'dark') targetC = targetC * 0.75;
-        
-        let stepShift = 0;
-        let targetMaxShift = 0;
-        if (state.shiftMode === 'auto') {
-          targetMaxShift = calculateAutoHueShift(state.h);
-        } else if (state.shiftMode === 'manual') {
-          targetMaxShift = state.shiftManualVal;
-        }
-        
-        if (mode === 'light') {
-          stepShift = 0;
-        } else {
-          const factor = (500 - 400) / 500;
-          stepShift = targetMaxShift * factor;
-        }
-        
-        const rawHue = (state.h + stepShift) % 360;
-        const normalizedHue = rawHue < 0 ? rawHue + 360 : rawHue;
-        let diff = 250 - normalizedHue;
-        if (diff > 180) diff -= 360;
-        if (diff < -180) diff += 360;
-        let finalH = normalizedHue + diff * 0.05;
-        if (finalH < 0) finalH += 360;
-        if (finalH >= 360) finalH -= 360;
-        
-        let col = new Color('oklch', [targetL / 100, targetC, finalH]);
-        hex500 = col.to('srgb').toString({ format: 'hex' }).replace('#', '').toLowerCase();
-      } catch (e) {
-        console.error("HEX 500 계산 에러:", e);
-      }
+      // [SSOT] 사전 계산된 500단계 HEX를 직접 획득 (light 또는 dark)
+      const palette = mode === 'light' ? state.lightPalette : state.darkPalette;
+      const rawHex = palette[500] || "#FFFFFF";
+      const hex500 = rawHex.replace('#', '').toLowerCase();
       
-      const fileName = `color-${rawGroupName.toLowerCase()}-${hex500}-${state.chromaEasingMode}-${mode}.json`; // 요구사항: color-blue-3182f6-subtle-light.json 등
+      const fileName = `color-${rawGroupName.toLowerCase()}-${hex500}-${state.chromaEasingMode}-${mode}.json`;
       
       const a = document.createElement("a");
       a.href = url;
@@ -2499,9 +2500,10 @@
       document.body.appendChild(a);
       a.click();
       
-      // 리소스 제거 및 소멸
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        if (document.body.contains(a)) document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
       
       showToast(`Figma 토큰 파일 다운로드 완료: ${fileName}`);
     }
