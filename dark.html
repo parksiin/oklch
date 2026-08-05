@@ -12,6 +12,8 @@
   
   <!-- [추가 요구사항] 정밀한 색상 상호 변환을 위한 colorjs.io 라이브러리 CDN 임포트 -->
   <script src="https://unpkg.com/colorjs.io/dist/color.global.js"></script>
+  <!-- [NEW] 피그마 다중 모드 JSON 번들링 압축용 JSZip CDN 임포트 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <style>
     /* ----------------------------------------------------
@@ -1545,6 +1547,37 @@
         </p>
       </div>
 
+      <!-- 🎨 피그마 멀티 모드 콜렉터 (Multi-Mode Collector) 패널 카드 -->
+      <div class="collector-panel-card" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 14px; padding: 18px 20px; margin-top: 1rem; margin-bottom: 1.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.2rem;">🎨</span>
+            <span style="font-weight: 700; font-size: 1.05rem; color: #f8fafc; letter-spacing: -0.02em;">피그마 멀티 모드 콜렉터</span>
+            <span style="font-size: 0.75rem; color: #94a3b8; background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 6px;">Multi-Palette Comparison</span>
+          </div>
+          <span id="collector-badge" style="background: #3182f6; color: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; box-shadow: 0 2px 8px rgba(49, 130, 246, 0.4);">
+            0개 대기 중
+          </span>
+        </div>
+        <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 14px; line-height: 1.5;">
+          다양한 컬러(Red, Yellow, Blue 등)를 차례대로 담아, 피그마 Variables에서 나란히 비교·검증할 수 있는 단일 통합 JSON으로 배포합니다.
+        </p>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+          <button id="btn-add-collection" onclick="addToMultiCollection()" style="flex: 1; min-width: 160px; background: rgba(255, 255, 255, 0.08); color: #f8fafc; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 8px; padding: 9px 16px; font-size: 0.88rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            대기열에 현재 팔레트 담기
+          </button>
+          <button id="btn-clear-collection" onclick="clearMultiCollection()" style="background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 8px; padding: 9px 14px; font-size: 0.88rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            대기열 비우기
+          </button>
+          <button id="btn-download-multi-json" onclick="downloadMultiJson()" disabled style="flex: 1.2; min-width: 220px; background: linear-gradient(135deg, #3182f6 0%, #1d4ed8 100%); color: #ffffff; border: none; border-radius: 8px; padding: 9px 18px; font-size: 0.88rem; font-weight: 700; cursor: not-allowed; opacity: 0.5; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(49, 130, 246, 0.35); transition: all 0.2s;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            ZIP 압축 다운로드 (0)
+          </button>
+        </div>
+      </div>
+
       <!-- 글로벌 네비게이션 모드 전환 탭 -->
       <nav class="gnb-tab-bar">
         <a href="index.html" class="gnb-tab-item">☀️ Light Mode</a>
@@ -1676,7 +1709,7 @@
       return state.chromaEasingMode === 'standard' ? standardConfigs : subtleConfigs;
     }
 
-    // [단일 출처 상태 관리] Application State (채도 감쇄 모드 필드 추가)
+    // [단일 출처 상태 관리] Application State (채도 감쇄 모드 및 멀티 콜렉터 필드 추가)
     const state = {
       l: 60.1,      // Lightness (0 ~ 100)
       c: 0.198,     // Chroma (0 ~ 0.300)
@@ -1687,8 +1720,9 @@
       contrastBg: 'FFFFFF', // 대비 검사용 배경색 HEX
       lastUpdatedSource: null, // 이벤트 폭주 및 루프 백 방지 장치
       baseHex: '3182F6', // [SSOT] 현재 Base Color의 무결한 HEX 상태값 (DOM 의존성 제거)
-      lightPalette: {}, // [SSOT] 라이트 모드 10단계 최종 HEX 적재 객체
-      darkPalette: {}   // [SSOT] 다크 모드 10단계 최종 HEX 적재 객체
+      lightPalette: {}, // [SSOT] 라이트 모드 11단계 최종 HEX 적재 객체
+      darkPalette: {},  // [SSOT] 다크 모드 11단계 최종 HEX 적재 객체
+      multiCollection: [] // [NEW] 다중 팔레트 스냅샷 누적 대기열 배열
     };
 
     // DOM 캐싱
@@ -1805,11 +1839,11 @@
       // 2. Light 모드 팔레트 계산
       // dark.html 파일은 dark 모드 전용이지만, 크로스 모드 JSON 빌더의 독립 연산을 위해 lightPalette의 스케일 계산도 유지합니다.
       const lightConfigs = state.chromaEasingMode === 'standard' ? [
-        { level: 50,  lOffset: 0.35,  cRatio: 0.15 },
-        { level: 100, lOffset: 0.30,  cRatio: 0.30 },
-        { level: 200, lOffset: 0.22,  cRatio: 0.50 },
-        { level: 300, lOffset: 0.12,  cRatio: 0.75 },
-        { level: 400, lOffset: 0.05,  cRatio: 0.90 },
+        { level: 50,  lOffset: 0.35,  cRatio: 0.06 },
+        { level: 100, lOffset: 0.30,  cRatio: 0.14 },
+        { level: 200, lOffset: 0.22,  cRatio: 0.27 },
+        { level: 300, lOffset: 0.12,  cRatio: 0.48 },
+        { level: 400, lOffset: 0.05,  cRatio: 0.76 },
         { level: 500, lOffset: 0.00,  cRatio: 1.00 },
         { level: 600, lOffset: -0.08, cRatio: 0.95 },
         { level: 700, lOffset: -0.18, cRatio: 0.85 },
@@ -1817,11 +1851,11 @@
         { level: 900, lOffset: -0.40, cRatio: 0.60 },
         { level: 950, lOffset: -0.45, cRatio: 0.45 }
       ] : [
-        { level: 50,  lOffset: 0.35,  cRatio: 0.08 },
-        { level: 100, lOffset: 0.30,  cRatio: 0.18 },
-        { level: 200, lOffset: 0.22,  cRatio: 0.35 },
-        { level: 300, lOffset: 0.12,  cRatio: 0.60 },
-        { level: 400, lOffset: 0.05,  cRatio: 0.85 },
+        { level: 50,  lOffset: 0.35,  cRatio: 0.04 },
+        { level: 100, lOffset: 0.30,  cRatio: 0.10 },
+        { level: 200, lOffset: 0.22,  cRatio: 0.20 },
+        { level: 300, lOffset: 0.12,  cRatio: 0.40 },
+        { level: 400, lOffset: 0.05,  cRatio: 0.70 },
         { level: 500, lOffset: 0.00,  cRatio: 1.00 },
         { level: 600, lOffset: -0.08, cRatio: 0.85 },
         { level: 700, lOffset: -0.18, cRatio: 0.60 },
@@ -1843,16 +1877,26 @@
 
         const baseL = state.l;
         let targetL = baseL;
-        const minChromL = 25.0; // 유채색 명도 하한선 방어 (Floor 25.0%)
+        let targetC = Math.max(0, state.c * cfg.cRatio);
+
+        // 상단 대역 전용 명도 고정 비율 매핑 (lRatios)
+        const lRatios = { 50: 1.00, 100: 0.92, 200: 0.76, 300: 0.56, 400: 0.28 };
+
         if (cfg.level < 500) {
-          targetL = baseL + (98 - baseL) * (cfg.lOffset / 0.35);
+          // 1. 명도 연산 (수식 폐기, 비율 매핑 직접 적용)
+          const ratio = lRatios[cfg.level];
+          targetL = baseL + (98 - baseL) * ratio;
+
+          // 2. 동적 채도 가중치(cScale) Tapering(점진적 감쇄) 파이프라인
+          const factor = (500 - cfg.level) / 450;
+          const dynamicCScale = getDynamicChromaScale(state.h);
+          const effectiveScale = 1.0 + (dynamicCScale - 1.0) * factor;
+          targetC = Math.max(0, state.c * cfg.cRatio * effectiveScale);
         } else {
+          const minChromL = 25.0; // 유채색 명도 하한선 방어 (Floor 25.0%)
           targetL = baseL - (baseL - minChromL) * (Math.abs(cfg.lOffset) / 0.45);
         }
         targetL = Math.max(0, Math.min(100, targetL));
-
-        let targetC = state.c * cfg.cRatio;
-        targetC = Math.max(0, targetC);
 
         const factor = cfg.level < 500 ? (500 - cfg.level) / 450 : (cfg.level - 500) / 450;
         const stepShift = cfg.level < 500 ? targetMaxShift * -0.45 * factor : targetMaxShift * factor;
@@ -1913,19 +1957,41 @@
       return 0.2126 * R + 0.7152 * G + 0.0722 * B;
     }
 
-    // 먼셀 10색상환 앵커 매트릭스 (RP clamp: 330 정밀 보정)
+    // 먼셀 10색상환 앵커 매트릭스 (RP clamp: 330 정밀 보정 및 cScale 수록)
     const HUE_ANCHORS = [
-      { name: 'R',  h: 25,  shift: 0,   clamp: 20 },
-      { name: 'YR', h: 45,  shift: -20, clamp: 25 },
-      { name: 'Y',  h: 100, shift: -45, clamp: 25 },
-      { name: 'GY', h: 130, shift: -15, clamp: 110 },
-      { name: 'G',  h: 150, shift: -10, clamp: 140 },
-      { name: 'BG', h: 180, shift: 0,   clamp: 170 },
-      { name: 'B',  h: 250, shift: 15,  clamp: 270 },
-      { name: 'PB', h: 280, shift: 0,   clamp: 280 },
-      { name: 'P',  h: 310, shift: -15, clamp: 290 },
-      { name: 'RP', h: 350, shift: -20, clamp: 330 } // RP 종착지 330도 정밀 바인딩
+      { name: 'R',  h: 25,  shift: 0,   clamp: 20,  cScale: 1.0 },
+      { name: 'YR', h: 45,  shift: -20, clamp: 25,  cScale: 1.5 },
+      { name: 'Y',  h: 100, shift: -45, clamp: 25,  cScale: 2.3 },
+      { name: 'GY', h: 130, shift: -15, clamp: 110, cScale: 2.1 },
+      { name: 'G',  h: 150, shift: -10, clamp: 140, cScale: 2.0 },
+      { name: 'BG', h: 180, shift: 0,   clamp: 170, cScale: 1.4 },
+      { name: 'B',  h: 250, shift: 15,  clamp: 270, cScale: 1.0 },
+      { name: 'PB', h: 280, shift: 0,   clamp: 280, cScale: 1.0 },
+      { name: 'P',  h: 310, shift: -15, clamp: 290, cScale: 1.0 },
+      { name: 'RP', h: 350, shift: -20, clamp: 330, cScale: 1.0 } // RP 종착지 330도 정밀 바인딩
     ];
+
+    // 색상각(Hue) 기반 동적 채도 가중치(cScale) 10앵커 연속 공간 Lerp 함수
+    function getDynamicChromaScale(h) {
+      let hVal = h;
+      if (h < 25) {
+        hVal = h + 360;
+      }
+
+      let prev = HUE_ANCHORS[HUE_ANCHORS.length - 1]; // 기본값: RP (350°)
+      let next = { name: 'R', h: 385, cScale: 1.0 };  // 기본값: R (25° + 360°)
+
+      for (let i = 0; i < HUE_ANCHORS.length - 1; i++) {
+        if (hVal >= HUE_ANCHORS[i].h && hVal <= HUE_ANCHORS[i + 1].h) {
+          prev = HUE_ANCHORS[i];
+          next = HUE_ANCHORS[i + 1];
+          break;
+        }
+      }
+
+      const t = (hVal - prev.h) / (next.h - prev.h);
+      return prev.cScale + t * (next.cScale - prev.cScale);
+    }
 
     // 3. 지능형 자동 색상 이동 (Auto Hue Shifting) 먼셀 10앵커 연속 공간 Lerp 엔진
     function calculateAutoHueShift(h) {
@@ -2496,6 +2562,196 @@
       URL.revokeObjectURL(url);
       
       showToast(`Figma 토큰 파일 다운로드 완료: ${fileName}`);
+    }
+
+    // ========================================================
+    // 🎨 피그마 멀티 모드 콜렉터 (Multi-Mode Collector) 파이프라인
+    // ========================================================
+
+    // 1. 대기열에 현재 11단계 스케일 스냅샷 추가
+    function addToMultiCollection() {
+      const groupName = getColorGroupName(state.h);
+      const hex500 = (state.darkPalette[500] || state.baseHex).replace('#', '').toUpperCase();
+      const modeKey = `${groupName}_${hex500}`;
+      const displayName = `${groupName} (#${hex500})`;
+
+      // 중복 등록 방지/식별을 위한 인덱싱
+      let finalKey = modeKey;
+      let existingCount = state.multiCollection.filter(item => item.baseKey === modeKey).length;
+      if (existingCount > 0) {
+        finalKey = `${modeKey}_${existingCount + 1}`;
+      }
+
+      const item = {
+        id: Date.now(),
+        baseKey: modeKey,
+        modeKey: finalKey,
+        displayName: existingCount > 0 ? `${displayName} (${existingCount + 1})` : displayName,
+        baseHex: hex500,
+        h: state.h,
+        c: state.c,
+        l: state.l,
+        easingMode: state.chromaEasingMode,
+        lightPalette: { ...state.lightPalette },
+        darkPalette: { ...state.darkPalette }
+      };
+
+      state.multiCollection.push(item);
+      updateCollectorUI();
+      showToast(`🎨 '${item.displayName}' 팔레트가 대기열에 담겼습니다! (총 ${state.multiCollection.length}개)`);
+    }
+
+    // 2. 대기열 리셋
+    function clearMultiCollection() {
+      state.multiCollection = [];
+      updateCollectorUI();
+      showToast(`🗑️ 멀티 모드 대기열이 비워졌습니다.`);
+    }
+
+    // 3. 콜렉터 UI 상태 업데이트
+    function updateCollectorUI() {
+      const badgeEl = document.getElementById('collector-badge');
+      const btnDownload = document.getElementById('btn-download-multi-json');
+      const count = state.multiCollection.length;
+
+      if (badgeEl) {
+        badgeEl.textContent = `${count}개 대기 중`;
+      }
+      if (btnDownload) {
+        btnDownload.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          ZIP 압축 다운로드 (${count})
+        `;
+        btnDownload.disabled = (count === 0);
+        btnDownload.style.opacity = (count === 0) ? '0.5' : '1';
+        btnDownload.style.cursor = (count === 0) ? 'not-allowed' : 'pointer';
+      }
+    }
+
+    // HEX를 RGB(0~1) 비율 배열로 정밀 변환하는 피그마 Native 파서용 헬퍼 함수
+    function hexToRgbComponents(hex) {
+      let cleanHex = hex.replace('#', '');
+      
+      // 3자리 헥스코드 방어 로직 (#FEF -> FFEEFF)
+      if (cleanHex.length === 3) {
+        cleanHex = cleanHex.split('').map(char => char + char).join('');
+      }
+      
+      const r = parseInt(cleanHex.substring(0, 2), 16) / 255;
+      const g = parseInt(cleanHex.substring(2, 4), 16) / 255;
+      const b = parseInt(cleanHex.substring(4, 6), 16) / 255;
+      return [r, g, b];
+    }
+
+    // 4. 피그마 Native Variables 규격 (1 File = 1 Mode) 개별 JSON들을 단일 ZIP 압축파일로 번들링 다운로드 파이프라인
+    async function downloadMultiJson() {
+      if (state.multiCollection.length === 0) {
+        showToast('대기열에 담긴 팔레트가 없습니다.');
+        return;
+      }
+
+      const count = state.multiCollection.length;
+      showToast(`📦 ${count}개 모드 JSON을 단일 ZIP 파일로 압축 생성 중입니다...`);
+
+      if (typeof JSZip !== 'undefined') {
+        const zip = new JSZip();
+        const levels = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+
+        state.multiCollection.forEach(item => {
+          const colorSchema = {};
+
+          levels.forEach(lvl => {
+            const hexCode = item.darkPalette[lvl] || item.lightPalette[lvl] || '#000000';
+            colorSchema[lvl] = {
+              "$type": "color",
+              "$value": {
+                "colorSpace": "srgb",
+                "components": hexToRgbComponents(hexCode),
+                "alpha": 1,
+                "hex": hexCode
+              },
+              "$extensions": {
+                "com.figma.scopes": ["ALL_SCOPES"]
+              }
+            };
+          });
+
+          const singleModeData = {
+            "color": colorSchema,
+            "$extensions": {
+              "com.figma.modeName": item.displayName,
+              "com.figma.collectionName": "OKLCH-Color-Palette"
+            }
+          };
+
+          const fileName = `color-${item.modeKey.toLowerCase()}.json`;
+          zip.file(fileName, JSON.stringify(singleModeData, null, 2));
+        });
+
+        try {
+          const zipContent = await zip.generateAsync({ type: "blob" });
+          const url = URL.createObjectURL(zipContent);
+          const zipFileName = `Multi-Palettes-${count}-Modes.zip`;
+
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = zipFileName;
+          document.body.appendChild(a);
+          a.click();
+
+          setTimeout(() => {
+            if (document.body.contains(a)) document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 100);
+
+          showToast(`🎉 ${count}개 팔레트가 압축된 '${zipFileName}' 파일이 내려받아졌습니다!<br>압축 해제 후 피그마에 한꺼번에 드래그 앤 드롭하세요.`);
+        } catch (err) {
+          console.error("ZIP 압축 실패:", err);
+          showToast("ZIP 압축 생성 중 오류가 발생했습니다.");
+        }
+      } else {
+        // Fallback: JSZip 미로드 시 개별 순차 다운로드
+        const items = [...state.multiCollection];
+        let index = 0;
+        function downloadNext() {
+          if (index >= items.length) return;
+          const item = items[index];
+          const levels = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+          const colorSchema = {};
+          levels.forEach(lvl => {
+            const hexCode = item.darkPalette[lvl] || item.lightPalette[lvl] || '#000000';
+            colorSchema[lvl] = {
+              "$type": "color",
+              "$value": {
+                "colorSpace": "srgb",
+                "components": hexToRgbComponents(hexCode),
+                "alpha": 1,
+                "hex": hexCode
+              },
+              "$extensions": { "com.figma.scopes": ["ALL_SCOPES"] }
+            };
+          });
+          const singleModeData = {
+            "color": colorSchema,
+            "$extensions": { "com.figma.modeName": item.displayName, "com.figma.collectionName": "OKLCH-Color-Palette" }
+          };
+
+          const blob = new Blob([JSON.stringify(singleModeData, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `color-${item.modeKey.toLowerCase()}.json`;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            if (document.body.contains(a)) document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            index++;
+            setTimeout(downloadNext, 300);
+          }, 100);
+        }
+        downloadNext();
+      }
     }
 
     // URL 및 LocalStorage에 현재 HEX 상태를 실시간 저장하고 GNB 링크 갱신
